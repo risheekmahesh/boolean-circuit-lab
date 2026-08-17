@@ -33,6 +33,7 @@ import {
   parseIndexList,
   valuesFromTerms,
 } from "@/lib/booleanLogic";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type InputMode = "expression" | "terms" | "truth";
 type TermKind = "minterms" | "maxterms";
@@ -233,7 +234,10 @@ export default function Home() {
           <span><b>BOOLEAN</b><em>CIRCUIT LAB</em></span>
         </a>
         <div className="topbar-center"><span className="live-indicator" /> Interactive logic workbench</div>
-        <a className="help-link" href="#guide"><CircleHelp size={17} /> Input guide</a>
+        <div className="topbar-actions">
+          <a className="help-link" href="#guide"><CircleHelp size={17} /> Input guide</a>
+          <ThemeToggle />
+        </div>
       </header>
 
       <main id="top">
