@@ -233,7 +233,6 @@ export default function Home() {
           <img src={LOGO_ASSET} alt="" />
           <span><b>BOOLEAN</b><em>CIRCUIT LAB</em></span>
         </a>
-        <div className="topbar-center"><span className="live-indicator" /> Interactive logic workbench</div>
         <div className="topbar-actions">
           <a className="help-link" href="#guide"><CircleHelp size={17} /> Input guide</a>
           <ThemeToggle />
