@@ -104,6 +104,10 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
   const edges = graph.nodes.flatMap((target) => Array.from(new Set(target.inputs)).map((sourceId) => ({ target, sourceId })));
   const sourceEdges = new Map<string, typeof edges>();
   edges.forEach((edge) => sourceEdges.set(edge.sourceId, [...(sourceEdges.get(edge.sourceId) ?? []), edge]));
+  const inputLane = new Map(graph.nodes.filter((node) => node.gate === "INPUT").map((node, index) => [node.id, index]));
+  const laneFor = (sourceId: string) => inputLane.get(sourceId) ?? Math.max(0, graph.nodes.findIndex((node) => node.id === sourceId) % 3);
+  const separatedInputLanes = graph.title !== "NOR-only";
+  const laneOffset = (sourceId: string) => separatedInputLanes ? laneFor(sourceId) * 20 : 0;
   const portY = (point: { x: number; y: number }, size: { width: number; height: number }, gate: CircuitNode["gate"], inputIndex: number, inputCount: number) => {
     if (!["AND", "OR", "NAND", "NOR", "NOT"].includes(gate)) return point.y + size.height / 2;
     const spacing = inputCount > 2 ? 15 : 19;
@@ -120,7 +124,7 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
     const startX = sourcePosition.x + sourceOutputOffset;
     const startY = sourcePosition.y + sourceSize.height / 2;
     if (connections.length > 1) {
-      const branchX = startX + 30;
+      const branchX = startX + 30 + laneOffset(sourceId);
       wireRoutes.push({ id: `${sourceId}-trunk`, path: `M ${startX} ${startY} H ${branchX}`, arrow: false });
       junctions.push({ id: sourceId, x: branchX, y: startY });
       connections.forEach(({ target, sourceId: targetSourceId }) => {
@@ -143,7 +147,7 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
     const endX = targetPosition.x + targetInputOffset;
     const inputIndex = onlyConnection.target.inputs.indexOf(sourceId);
     const endY = portY(targetPosition, targetSize, onlyConnection.target.gate, inputIndex, onlyConnection.target.inputs.length);
-    const channelX = startX + Math.max(24, Math.min(78, (endX - startX) * 0.42));
+    const channelX = startX + 30 + laneOffset(sourceId);
     wireRoutes.push({ id: `${sourceId}-${onlyConnection.target.id}`, path: `M ${startX} ${startY} H ${channelX} V ${endY} H ${endX}`, arrow: true });
   });
 
