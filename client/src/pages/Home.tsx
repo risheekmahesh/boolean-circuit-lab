@@ -83,7 +83,24 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
     graph.nodes.forEach((current) => grouped.set(current.column, [...(grouped.get(current.column) ?? []), current]));
     const maxColumn = Math.max(...graph.nodes.map((item) => item.column));
     const maxRows = Math.max(...Array.from(grouped.values()).map((items) => items.length));
-    const height = Math.max(270, 80 + maxRows * 58);
+    if (graph.title !== "NAND-only" && graph.title !== "NOR-only") {
+      const height = Math.max(270, 80 + maxRows * 58);
+      const columnX = new Map<number, number>();
+      let nextX = 24;
+      for (let column = 0; column <= maxColumn; column += 1) {
+        columnX.set(column, nextX);
+        const widest = Math.max(...(grouped.get(column) ?? []).map((item) => nodeDimensions(item.gate).width), 88);
+        nextX += widest + 112;
+      }
+      const position = new Map<string, { x: number; y: number }>();
+      grouped.forEach((items, column) => {
+        const totalHeight = items.length * 42 + Math.max(0, items.length - 1) * 20;
+        const startY = Math.max(26, (height - totalHeight) / 2);
+        items.forEach((current, index) => position.set(current.id, { x: columnX.get(column) ?? 24, y: startY + index * 62 }));
+      });
+      return { width: Math.max(720, nextX - 16), height, position };
+    }
+    const height = Math.max(270, 80 + Math.max(maxRows, 3) * 58);
     const columnX = new Map<number, number>();
     let nextX = 24;
     const stageGap = 112;
@@ -93,11 +110,35 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
       nextX += widest + stageGap;
     }
     const position = new Map<string, { x: number; y: number }>();
-    grouped.forEach((items, column) => {
-      const totalHeight = items.length * 42 + Math.max(0, items.length - 1) * 20;
-      const startY = Math.max(26, (height - totalHeight) / 2);
-      items.forEach((current, index) => position.set(current.id, { x: columnX.get(column) ?? 24, y: startY + index * 62 }));
-    });
+    const centerY = height / 2;
+    const inputNodes = grouped.get(0) ?? [];
+    const inputGap = inputNodes.length > 1 ? Math.min(64, (height - 72) / (inputNodes.length - 1)) : 0;
+    const inputTop = (height - ((inputNodes.length - 1) * inputGap) - 36) / 2;
+    inputNodes.forEach((current, index) => position.set(current.id, { x: columnX.get(0) ?? 24, y: inputTop + index * inputGap }));
+    for (let column = 1; column <= maxColumn; column += 1) {
+      const items = grouped.get(column) ?? [];
+      if (column === 1) {
+        items.forEach((current, index) => {
+          const source = current.inputs[0] ? graph.nodes.find((node) => node.id === current.inputs[0]) : undefined;
+          const sourcePosition = current.inputs[0] ? position.get(current.inputs[0]) : undefined;
+          const sourceCenter = source && sourcePosition ? sourcePosition.y + nodeDimensions(source.gate).height / 2 : centerY + (index - (items.length - 1) / 2) * 58;
+          const size = nodeDimensions(current.gate);
+          position.set(current.id, { x: columnX.get(column) ?? 24, y: sourceCenter - size.height / 2 });
+        });
+      } else if (column === 2) {
+        const gateGap = items.length > 1 ? Math.min(64, (height - 72) / (items.length - 1)) : 0;
+        items.forEach((current, index) => {
+          const size = nodeDimensions(current.gate);
+          const gateCenter = centerY + (index - (items.length - 1) / 2) * gateGap;
+          position.set(current.id, { x: columnX.get(column) ?? 24, y: gateCenter - size.height / 2 });
+        });
+      } else {
+        items.forEach((current) => {
+          const size = nodeDimensions(current.gate);
+          position.set(current.id, { x: columnX.get(column) ?? 24, y: centerY - size.height / 2 });
+        });
+      }
+    }
     return { width: Math.max(720, nextX - 16), height, position };
   }, [graph]);
 
@@ -107,8 +148,8 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
   edges.forEach((edge) => sourceEdges.set(edge.sourceId, [...(sourceEdges.get(edge.sourceId) ?? []), edge]));
   const inputLane = new Map(graph.nodes.filter((node) => node.gate === "INPUT").map((node, index) => [node.id, index]));
   const laneFor = (sourceId: string) => inputLane.get(sourceId) ?? Math.max(0, graph.nodes.findIndex((node) => node.id === sourceId) % 3);
-  const separatedInputLanes = graph.title === "AND · OR · NOT";
-  const laneOffset = (sourceId: string) => separatedInputLanes ? laneFor(sourceId) * 20 : 0;
+  const separatedInputLanes = graph.title === "NAND-only" || graph.title === "NOR-only" || graph.title === "AND · OR · NOT";
+  const laneOffset = (sourceId: string) => separatedInputLanes && inputLane.has(sourceId) ? laneFor(sourceId) * 20 : 0;
   const portY = (point: { x: number; y: number }, size: { width: number; height: number }, gate: CircuitNode["gate"], inputIndex: number, inputCount: number) => {
     if (!["AND", "OR", "NAND", "NOR", "NOT"].includes(gate)) return point.y + size.height / 2;
     const spacing = inputCount > 2 ? 15 : 19;
