@@ -49,10 +49,12 @@ export default function AIChatWidget() {
         body: JSON.stringify({ question, page: pageContext, history: messages.slice(-6) }),
       });
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || "The assistant could not respond right now.");
-      setMessages((current) => [...current, { role: "assistant", content: payload.answer }]);
+      if (!response.ok) throw new Error(typeof payload.error === "string" ? payload.error : "The assistant could not respond right now.");
+      if (typeof payload.answer !== "string" || !payload.answer.trim()) throw new Error("Gemini returned an empty answer. Please try asking again.");
+      setMessages((current) => [...current, { role: "assistant", content: payload.answer.trim() }]);
     } catch (issue) {
-      setError(issue instanceof Error ? issue.message : "The assistant could not respond right now.");
+      const message = issue instanceof Error ? issue.message : "The assistant could not respond right now.";
+      setError(message === "Failed to fetch" ? "The assistant could not be reached. Check the Gemini server configuration and try again." : message);
     } finally {
       setLoading(false);
     }
@@ -71,7 +73,7 @@ export default function AIChatWidget() {
             {messages.map((message, index) => <div className={`assistant-message ${message.role}`} key={`${message.role}-${index}`}>{message.content}</div>)}
             {loading && <div className="assistant-message assistant">Thinking through the circuit…</div>}
           </div>
-          {error && <p className="assistant-error">{error}</p>}
+          {error && <p className="assistant-error" role="alert">{error}</p>}
           <div className="assistant-composer"><textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void sendMessage(); } }} placeholder="Ask about this circuit…" aria-label="Ask the logic assistant" rows={2} /><button type="button" aria-label="Send question" onClick={() => void sendMessage()} disabled={loading || !draft.trim()}><Send size={16} /></button></div>
           <p className="assistant-context">{pageContext}</p>
         </aside>

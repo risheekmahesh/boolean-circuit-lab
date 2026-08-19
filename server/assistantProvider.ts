@@ -62,8 +62,15 @@ async function askGoogle(request: AssistantRequest, apiKey: string) {
 }
 
 export async function askAssistant(request: AssistantRequest) {
-  const apiKey = process.env.ASSISTANT_API_KEY || process.env.OPENAI_API_KEY;
-  const provider = (process.env.ASSISTANT_PROVIDER || "openai").toLowerCase();
-  if (!apiKey) throw new Error("The assistant is not configured yet. Add ASSISTANT_API_KEY to the server environment.");
-  return provider === "google" || provider === "gemini" ? askGoogle(request, apiKey) : askOpenAICompatible(request, apiKey);
+  const provider = (process.env.ASSISTANT_PROVIDER || "google").toLowerCase();
+  const isGemini = provider === "google" || provider === "gemini";
+  const apiKey = isGemini
+    ? process.env.GEMINI_API_KEY || process.env.ASSISTANT_API_KEY
+    : process.env.ASSISTANT_API_KEY || process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error(isGemini
+      ? "The assistant is not configured yet. Add GEMINI_API_KEY to the server environment."
+      : "The assistant is not configured yet. Add ASSISTANT_API_KEY to the server environment.");
+  }
+  return isGemini ? askGoogle(request, apiKey) : askOpenAICompatible(request, apiKey);
 }
