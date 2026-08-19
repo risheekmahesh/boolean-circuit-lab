@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Activity, Bot, CheckCircle2, CircuitBoard, Home, Menu, Package, Search, Settings, X, Zap } from "lucide-react";
+import { Bot, CheckCircle2, CircuitBoard, Home, Menu, Package, Search, Settings, X, Zap } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import ThemeToggle from "@/components/ThemeToggle";
 import type { ReactNode } from "react";
@@ -8,7 +8,6 @@ const navItems = [
   { href: "/", label: "Home", icon: Home, match: (path: string) => path === "/" },
   { href: "/lab", label: "Boolean Lab", icon: Zap, match: (path: string) => path.startsWith("/lab") },
   { href: "/modules", label: "Modules", icon: Package, match: (path: string) => path.startsWith("/modules") },
-  { href: "/signal", label: "Signal Graph", icon: Activity, match: (path: string) => path.startsWith("/signal") },
   { href: "/verify", label: "Verification", icon: CheckCircle2, match: (path: string) => path.startsWith("/verify") },
   { href: "/settings", label: "Settings", icon: Settings, match: (path: string) => path.startsWith("/settings") },
 ];

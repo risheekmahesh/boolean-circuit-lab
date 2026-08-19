@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Activity, ArrowRight, CheckCircle2, CircuitBoard, FunctionSquare, GitBranch, Layers3, Map, Play, Plus, RefreshCw, Search, TableProperties, Zap } from "lucide-react";
+import { ArrowRight, CheckCircle2, CircuitBoard, FunctionSquare, GitBranch, Layers3, Map, Play, Plus, RefreshCw, Search, TableProperties, Zap } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 const featureGroups = [
@@ -20,7 +20,6 @@ const featureGroups = [
     accent: "copper",
     items: [
       { href: "/lab?tab=gates", icon: CircuitBoard, title: "Gate Synthesis", description: "Standard, NAND-only, NOR-only circuits" },
-      { href: "/signal", icon: Activity, title: "Live Signal Graph", description: "Interactive signal propagation" },
       { href: "/verify", icon: CheckCircle2, title: "Exhaustive Verification", description: "Verify all input states" },
     ],
   },

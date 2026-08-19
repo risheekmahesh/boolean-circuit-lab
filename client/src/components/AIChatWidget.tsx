@@ -22,7 +22,6 @@ export default function AIChatWidget() {
 
   const pageContext = useMemo(() => {
     if (location.startsWith("/modules")) return "Digital logic modules page: half adder, full adder, half subtractor, full subtractor, and 2-bit by 2-bit multiplier.";
-    if (location.startsWith("/signal")) return "Boolean Circuit Lab signal graph view: gate-level signal propagation and live circuit paths.";
     if (location.startsWith("/verify")) return "Boolean Circuit Lab verification view: exhaustive row-by-row equivalence checks.";
     if (location.startsWith("/settings")) return "Boolean Circuit Lab settings view.";
     return "Boolean Circuit Lab analyzer page: Boolean expression minimization, don't-care terms, truth table, Karnaugh map, and gate-level implementations.";

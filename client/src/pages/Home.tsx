@@ -316,7 +316,7 @@ function KMap({ analysis }: { analysis: AnalysisResult }) {
   );
 }
 
-export type AnalyzerSection = "all" | "truth" | "kmap" | "gates" | "transform" | "signal" | "verification";
+export type AnalyzerSection = "all" | "truth" | "kmap" | "gates" | "transform" | "verification";
 
 export default function Home({ embedded = false, visibleSection = "all" }: { embedded?: boolean; visibleSection?: AnalyzerSection }) {
   const [mode, setMode] = useState<InputMode>("expression");
@@ -504,7 +504,7 @@ export default function Home({ embedded = false, visibleSection = "all" }: { emb
 
             {showSection("kmap") && <KMap analysis={analysis} />}
 
-            {(showSection("gates") || showSection("signal")) && <section className="implementation-section" id="gates">
+            {showSection("gates") && <section className="implementation-section" id="gates">
               <div className="section-heading"><div><div className="eyebrow">Gate synthesis</div><h3>Three equivalent implementations</h3></div><p>Each diagram is an executable signal graph.</p></div>
               <div className="circuit-stack">
                 <CircuitCard graph={analysis.circuits.standard} accent="graphite" />

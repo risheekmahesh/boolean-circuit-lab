@@ -12,7 +12,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
 function Router() {
-  return <DashboardShell><Switch><Route path="/" component={Overview} /><Route path="/lab" component={LabPage} /><Route path="/modules" component={AdvancedModules} /><Route path="/signal" component={LabPage} /><Route path="/verify" component={LabPage} /><Route path="/settings" component={Settings} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch></DashboardShell>;
+  return <DashboardShell><Switch><Route path="/" component={Overview} /><Route path="/lab" component={LabPage} /><Route path="/modules" component={AdvancedModules} /><Route path="/verify" component={LabPage} /><Route path="/settings" component={Settings} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch></DashboardShell>;
 }
 
 function App() {

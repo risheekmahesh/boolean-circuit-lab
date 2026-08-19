@@ -1,4 +1,4 @@
-import { Activity, CheckCircle2, CircuitBoard, Layers3, Map, TableProperties } from "lucide-react";
+import { CheckCircle2, CircuitBoard, Layers3, Map, TableProperties } from "lucide-react";
 import { useEffect } from "react";
 import { useLocation, useSearchParams } from "wouter";
 import Home, { type AnalyzerSection } from "@/pages/Home";
@@ -8,7 +8,6 @@ const tabs: Array<{ key: Exclude<AnalyzerSection, "all">; label: string; icon: t
   { key: "kmap", label: "K-Map", icon: Map, anchor: "kmap" },
   { key: "gates", label: "Gate Circuits", icon: CircuitBoard, anchor: "gates" },
   { key: "transform", label: "Transform", icon: Layers3, anchor: "transform" },
-  { key: "signal", label: "Signal Graph", icon: Activity, anchor: "gates" },
   { key: "verification", label: "Verification", icon: CheckCircle2, anchor: "verify" },
 ];
 
@@ -18,13 +17,11 @@ const tabAliases: Record<string, Exclude<AnalyzerSection, "all">> = {
   kmap: "kmap",
   gates: "gates",
   transform: "transform",
-  signal: "signal",
   verify: "verification",
   verification: "verification",
 };
 
 function selectedTab(path: string, searchParams: URLSearchParams): Exclude<AnalyzerSection, "all"> {
-  if (path.startsWith("/signal")) return "signal";
   if (path.startsWith("/verify")) return "verification";
   const requested = searchParams.get("tab") ?? "truth";
   return tabAliases[requested] ?? "truth";
