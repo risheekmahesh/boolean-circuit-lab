@@ -349,10 +349,78 @@ function node(id: string, label: string, gate: GateType, inputs: string[], colum
   return { id, label, gate, inputs, column };
 }
 
+type GraphRef = { id: string; column: number };
+
 function finishGraph(title: string, caption: string, variables: string[], nodes: CircuitNode[], source: string, expression: string): CircuitGraph {
   const outputId = "output";
-  nodes.push(node(outputId, "F", "OUTPUT", [source], 4));
+  const outputColumn = Math.max(...nodes.map((current) => current.column), 3) + 1;
+  nodes.push(node(outputId, "F", "OUTPUT", [source], outputColumn));
   return { title, caption, nodes, outputId, variables, expression };
+}
+
+function binaryChain(nodes: CircuitNode[], gate: "AND" | "OR", sources: string[], prefix: string, startColumn: number): GraphRef {
+  if (sources.length === 1) return { id: sources[0], column: startColumn - 1 };
+  let current = sources[0];
+  let column = startColumn;
+  for (let index = 1; index < sources.length; index += 1) {
+    const id = `${prefix}-${index}`;
+    nodes.push(node(id, gate, gate, [current, sources[index]], column));
+    current = id;
+    column += 1;
+  }
+  return { id: current, column: column - 1 };
+}
+
+function binaryNegatedChain(nodes: CircuitNode[], gate: "NAND" | "NOR", sources: string[], prefix: string, startColumn: number): GraphRef {
+  if (sources.length === 1) {
+    const id = `${prefix}-invert`;
+    nodes.push(node(id, gate, gate, [sources[0], sources[0]], startColumn));
+    return { id, column: startColumn };
+  }
+  let current = `${prefix}-0`;
+  let column = startColumn;
+  nodes.push(node(current, gate, gate, [sources[0], sources[1]], column));
+  for (let index = 2; index < sources.length; index += 1) {
+    column += 1;
+    const restored = `${prefix}-restore-${index}`;
+    nodes.push(node(restored, gate, gate, [current, current], column));
+    column += 1;
+    current = `${prefix}-${index}`;
+    nodes.push(node(current, gate, gate, [restored, sources[index]], column));
+  }
+  return { id: current, column };
+}
+
+function combineNandNegated(nodes: CircuitNode[], sources: string[], prefix: string, startColumn: number): GraphRef {
+  if (sources.length === 1) return binaryNegatedChain(nodes, "NAND", sources, prefix, startColumn);
+  let current = `${prefix}-0`;
+  let column = startColumn;
+  nodes.push(node(current, "NAND", "NAND", [sources[0], sources[1]], column));
+  for (let index = 2; index < sources.length; index += 1) {
+    column += 1;
+    const restored = `${prefix}-restore-${index}`;
+    nodes.push(node(restored, "NAND", "NAND", [current, current], column));
+    column += 1;
+    current = `${prefix}-${index}`;
+    nodes.push(node(current, "NAND", "NAND", [restored, sources[index]], column));
+  }
+  return { id: current, column };
+}
+
+function combineNorNegated(nodes: CircuitNode[], sources: string[], prefix: string, startColumn: number): GraphRef {
+  if (sources.length === 1) return binaryNegatedChain(nodes, "NOR", sources, prefix, startColumn);
+  let current = `${prefix}-0`;
+  let column = startColumn;
+  nodes.push(node(current, "NOR", "NOR", [sources[0], sources[1]], column));
+  for (let index = 2; index < sources.length; index += 1) {
+    column += 1;
+    const restored = `${prefix}-restore-${index}`;
+    nodes.push(node(restored, "NOR", "NOR", [current, current], column));
+    column += 1;
+    current = `${prefix}-${index}`;
+    nodes.push(node(current, "NOR", "NOR", [restored, sources[index]], column));
+  }
+  return { id: current, column };
 }
 
 function standardGraph(variables: string[], terms: ProductTerm[], expression: string): CircuitGraph {
@@ -373,15 +441,8 @@ function standardGraph(variables: string[], terms: ProductTerm[], expression: st
     inverted.set(literal.variable, id);
     return id;
   };
-  const products = terms.map((term, index) => {
-    const sources = term.map(literalSource);
-    if (sources.length === 1) return sources[0];
-    const id = `and-${index}`;
-    nodes.push(node(id, "AND", "AND", sources, 2));
-    return id;
-  });
-  const source = products.length === 1 ? products[0] : "or-final";
-  if (products.length > 1) nodes.push(node(source, "OR", "OR", products, 3));
+  const products = terms.map((term, index) => binaryChain(nodes, "AND", term.map(literalSource), `and-${index}`, 2));
+  const source = products.length === 1 ? products[0].id : binaryChain(nodes, "OR", products.map((product) => product.id), "or-final", Math.max(...products.map((product) => product.column), 2) + 1).id;
   return finishGraph("AND · OR · NOT", "Simplified sum-of-products implementation using basic gates.", variables, nodes, source, expression);
 }
 
@@ -403,16 +464,9 @@ function nandGraph(variables: string[], terms: ProductTerm[], expression: string
     inverted.set(literal.variable, id);
     return id;
   };
-  const negatedProducts = terms.map((term, index) => {
-    const sources = term.map(literalSource);
-    const inputs = sources.length === 1 ? [sources[0], sources[0]] : sources;
-    const id = `nand-product-${index}`;
-    nodes.push(node(id, "NAND", "NAND", inputs, 2));
-    return id;
-  });
-  const finalInputs = negatedProducts.length === 1 ? [negatedProducts[0], negatedProducts[0]] : negatedProducts;
-  nodes.push(node("nand-final", "NAND", "NAND", finalInputs, 3));
-  return finishGraph("NAND-only", "Inverters and the final OR transformation are synthesized with NAND gates.", variables, nodes, "nand-final", expression);
+  const negatedProducts = terms.map((term, index) => binaryNegatedChain(nodes, "NAND", term.map(literalSource), `nand-product-${index}`, 2));
+  const final = combineNandNegated(nodes, negatedProducts.map((product) => product.id), "nand-final", Math.max(...negatedProducts.map((product) => product.column), 2) + 1);
+  return finishGraph("NAND-only", "Inverters and the final OR transformation are synthesized with NAND gates.", variables, nodes, final.id, expression);
 }
 
 function norGraph(variables: string[], factors: ProductTerm[], expression: string): CircuitGraph {
@@ -433,16 +487,9 @@ function norGraph(variables: string[], factors: ProductTerm[], expression: strin
     inverted.set(literal.variable, id);
     return id;
   };
-  const negatedFactors = factors.map((factor, index) => {
-    const sources = factor.map(literalSource);
-    const inputs = sources.length === 1 ? [sources[0], sources[0]] : sources;
-    const id = `nor-factor-${index}`;
-    nodes.push(node(id, "NOR", "NOR", inputs, 2));
-    return id;
-  });
-  const finalInputs = negatedFactors.length === 1 ? [negatedFactors[0], negatedFactors[0]] : negatedFactors;
-  nodes.push(node("nor-final", "NOR", "NOR", finalInputs, 3));
-  return finishGraph("NOR-only", "The minimized product-of-sums form is synthesized exclusively with NOR gates.", variables, nodes, "nor-final", expression);
+  const negatedFactors = factors.map((factor, index) => binaryNegatedChain(nodes, "NOR", factor.map(literalSource), `nor-factor-${index}`, 2));
+  const final = combineNorNegated(nodes, negatedFactors.map((factor) => factor.id), "nor-final", Math.max(...negatedFactors.map((factor) => factor.column), 2) + 1);
+  return finishGraph("NOR-only", "The minimized product-of-sums form is synthesized exclusively with NOR gates.", variables, nodes, final.id, expression);
 }
 
 export function evaluateCircuit(graph: CircuitGraph, assignment: Record<string, boolean>) {
