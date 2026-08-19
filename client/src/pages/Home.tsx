@@ -86,10 +86,11 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
     const height = Math.max(270, 80 + maxRows * 58);
     const columnX = new Map<number, number>();
     let nextX = 24;
+    const stageGap = graph.title === "NAND-only" ? 56 : 112;
     for (let column = 0; column <= maxColumn; column += 1) {
       columnX.set(column, nextX);
       const widest = Math.max(...(grouped.get(column) ?? []).map((item) => nodeDimensions(item.gate).width), 88);
-      nextX += widest + 112;
+      nextX += widest + stageGap;
     }
     const position = new Map<string, { x: number; y: number }>();
     grouped.forEach((items, column) => {
@@ -120,7 +121,7 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
     const sourcePosition = layout.position.get(sourceId);
     if (!source || !sourcePosition) return;
     const sourceSize = nodeDimensions(source.gate);
-    const sourceOutputOffset = source.gate === "INPUT" ? sourceSize.width + 18 : source.gate === "NOT" ? sourceSize.width - 12 : ["NAND", "NOR"].includes(source.gate) ? sourceSize.width - 2 : ["AND", "OR"].includes(source.gate) ? sourceSize.width - 8 : sourceSize.width;
+    const sourceOutputOffset = source.gate === "INPUT" ? sourceSize.width + 18 : source.gate === "NOT" ? sourceSize.width - 12 : source.gate === "NAND" ? sourceSize.width - 9 : source.gate === "NOR" ? sourceSize.width - 2 : ["AND", "OR"].includes(source.gate) ? sourceSize.width - 8 : sourceSize.width;
     const startX = sourcePosition.x + sourceOutputOffset;
     const startY = sourcePosition.y + sourceSize.height / 2;
     if (connections.length > 1) {
@@ -169,7 +170,7 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
           const size = nodeDimensions(current.gate);
           const isLogicGate = ["AND", "OR", "NAND", "NOR", "NOT"].includes(current.gate);
           const bubble = current.gate === "NAND" || current.gate === "NOR" || current.gate === "NOT";
-          const bubbleX = current.gate === "NOT" ? size.width - 17 : size.width - 7;
+          const bubbleX = current.gate === "NOT" ? size.width - 17 : current.gate === "NAND" ? size.width - 14 : size.width - 7;
           return (
             <g key={current.id} transform={`translate(${point.x}, ${point.y})`}>
               {current.gate === "INPUT" && <><rect className="input-terminal" width={size.width} height={size.height} rx="17" /><text className="terminal-label" x="22" y="23" textAnchor="middle">{current.label}</text><path className="terminal-stub" d={`M ${size.width} ${size.height / 2} H ${size.width + 18}`} /></>}
