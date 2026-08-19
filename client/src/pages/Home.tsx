@@ -121,7 +121,7 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
     const sourcePosition = layout.position.get(sourceId);
     if (!source || !sourcePosition) return;
     const sourceSize = nodeDimensions(source.gate);
-    const sourceOutputOffset = source.gate === "INPUT" ? sourceSize.width + 18 : source.gate === "NOT" ? sourceSize.width - 12 : ["NAND", "NOR"].includes(source.gate) ? sourceSize.width - 2 : ["AND", "OR"].includes(source.gate) ? sourceSize.width - 8 : sourceSize.width;
+    const sourceOutputOffset = source.gate === "INPUT" ? sourceSize.width + 18 : source.gate === "NOT" ? sourceSize.width - 12 : source.gate === "NAND" ? sourceSize.width - 4 : ["NOR"].includes(source.gate) ? sourceSize.width - 2 : ["AND", "OR"].includes(source.gate) ? sourceSize.width - 8 : sourceSize.width;
     const startX = sourcePosition.x + sourceOutputOffset;
     const startY = sourcePosition.y + sourceSize.height / 2;
     if (connections.length > 1) {
@@ -132,7 +132,7 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
         const targetPosition = layout.position.get(target.id);
         if (!targetPosition) return;
         const targetSize = nodeDimensions(target.gate);
-        const targetInputOffset = target.gate === "NOT" ? 10 : ["AND", "OR", "NAND", "NOR"].includes(target.gate) ? 8 : 0;
+        const targetInputOffset = target.gate === "NOT" ? 10 : target.gate === "NAND" ? 6 : ["AND", "OR", "NOR"].includes(target.gate) ? 8 : 0;
         const endX = targetPosition.x + targetInputOffset;
         const inputIndex = target.inputs.indexOf(targetSourceId);
         const endY = portY(targetPosition, targetSize, target.gate, inputIndex, target.inputs.length);
@@ -144,7 +144,7 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
     const targetPosition = layout.position.get(onlyConnection.target.id);
     if (!targetPosition) return;
     const targetSize = nodeDimensions(onlyConnection.target.gate);
-    const targetInputOffset = onlyConnection.target.gate === "NOT" ? 10 : ["AND", "OR", "NAND", "NOR"].includes(onlyConnection.target.gate) ? 8 : 0;
+    const targetInputOffset = onlyConnection.target.gate === "NOT" ? 10 : onlyConnection.target.gate === "NAND" ? 6 : ["AND", "OR", "NOR"].includes(onlyConnection.target.gate) ? 8 : 0;
     const endX = targetPosition.x + targetInputOffset;
     const inputIndex = onlyConnection.target.inputs.indexOf(sourceId);
     const endY = portY(targetPosition, targetSize, onlyConnection.target.gate, inputIndex, onlyConnection.target.inputs.length);
