@@ -28,6 +28,7 @@ export type VerificationRow = {
   index: number;
   assignment: Record<string, boolean>;
   original: boolean;
+  dontCare: boolean;
   simplified: boolean;
   nand: boolean;
   nor: boolean;
@@ -39,6 +40,7 @@ export type AnalysisResult = {
   values: boolean[];
   minterms: number[];
   maxterms: number[];
+  dontCares: number[];
   originalExpression: string;
   simplifiedExpression: string;
   posExpression: string;
@@ -239,13 +241,14 @@ function literalCount(implicant: Implicant) {
   return implicant.pattern.split("").filter((bit) => bit !== "-").length;
 }
 
-function minimiseSop(variables: string[], minterms: number[]): ProductTerm[] {
+function minimiseSop(variables: string[], minterms: number[], dontCares: number[] = []): ProductTerm[] {
   const universe = 2 ** variables.length;
-  const unique = Array.from(new Set(minterms)).sort((a, b) => a - b);
-  if (unique.length === 0) return [];
-  if (unique.length === universe) return [[]];
+  const required = Array.from(new Set(minterms)).sort((a, b) => a - b);
+  const allowed = Array.from(new Set([...required, ...dontCares])).sort((a, b) => a - b);
+  if (required.length === 0) return [];
+  if (required.length === universe) return [[]];
 
-  let current: Implicant[] = unique.map((minterm) => ({ pattern: patternFor(minterm, variables.length), covered: new Set([minterm]) }));
+  let current: Implicant[] = allowed.map((minterm) => ({ pattern: patternFor(minterm, variables.length), covered: new Set([minterm]) }));
   const primeMap = new Map<string, Implicant>();
 
   while (current.length) {
@@ -268,9 +271,9 @@ function minimiseSop(variables: string[], minterms: number[]): ProductTerm[] {
     current = Array.from(nextMap.values());
   }
 
-  const primes = Array.from(primeMap.values()).filter((prime) => unique.some((term) => prime.covered.has(term)));
+  const primes = Array.from(primeMap.values()).filter((prime) => required.some((term) => prime.covered.has(term)));
   const coverageMap = new Map<number, number[]>();
-  unique.forEach((minterm) => coverageMap.set(minterm, primes.flatMap((prime, index) => (prime.covered.has(minterm) ? [index] : []))));
+  required.forEach((minterm) => coverageMap.set(minterm, primes.flatMap((prime, index) => (prime.covered.has(minterm) ? [index] : []))));
 
   const essential = new Set<number>();
   coverageMap.forEach((candidates) => {
@@ -295,7 +298,7 @@ function minimiseSop(variables: string[], minterms: number[]): ProductTerm[] {
 
   const search = (selected: Set<number>) => {
     const covered = coveredBy(selected);
-    const missing = unique.filter((term) => !covered.has(term));
+    const missing = required.filter((term) => !covered.has(term));
     if (missing.length === 0) {
       const candidate = Array.from(selected).sort((a, b) => a - b);
       if (compare(candidate, best)) best = candidate;
@@ -486,18 +489,38 @@ export function parseIndexList(input: string, limit: number) {
   return Array.from(new Set(values)).sort((a, b) => a - b);
 }
 
+export function parseDontCareList(input: string, limit: number) {
+  const cleaned = input.trim();
+  if (!cleaned) return [];
+  const wrapped = cleaned.match(/^d\s*\((.*)\)$/i);
+  const body = wrapped ? wrapped[1].trim() : cleaned;
+  if (!body || /[()d]/i.test(body) || !/^\d+(?:\s*,\s*\d+)*$/.test(body)) {
+    throw new Error(`Enter don't-care terms as d(1,3,7) or 1,3,7 using values from 0 to ${limit - 1}.`);
+  }
+  return parseIndexList(body, limit);
+}
+
 export function valuesFromTerms(count: number, values: number[], kind: "minterms" | "maxterms") {
   const selected = new Set(values);
   return Array.from({ length: 2 ** count }, (_, index) => (kind === "minterms" ? selected.has(index) : !selected.has(index)));
 }
 
-export function analyzeFromValues(variables: string[], values: boolean[], originalExpression?: string): AnalysisResult {
+export function analyzeFromValues(variables: string[], values: boolean[], originalExpression?: string, dontCares: number[] = []): AnalysisResult {
   const assignments = assignmentsFor(variables);
   if (values.length !== assignments.length) throw new Error("The truth table does not match the selected variable count.");
+  const limit = assignments.length;
+  const normalizedDontCares = Array.from(new Set(dontCares)).sort((a, b) => a - b);
+  if (normalizedDontCares.some((index) => !Number.isInteger(index) || index < 0 || index >= limit)) {
+    throw new Error(`Don't-care terms must be whole numbers from 0 to ${limit - 1}.`);
+  }
   const minterms = values.flatMap((value, index) => (value ? [index] : []));
-  const maxterms = values.flatMap((value, index) => (!value ? [index] : []));
-  const sopTerms = minimiseSop(variables, minterms);
-  const complementTerms = minimiseSop(variables, maxterms);
+  if (normalizedDontCares.some((index) => minterms.includes(index))) {
+    throw new Error("Don't-care terms cannot overlap with required ON-set minterms.");
+  }
+  const dontCareSet = new Set(normalizedDontCares);
+  const maxterms = values.flatMap((value, index) => (!value && !dontCareSet.has(index) ? [index] : []));
+  const sopTerms = minimiseSop(variables, minterms, normalizedDontCares);
+  const complementTerms = minimiseSop(variables, maxterms, normalizedDontCares);
   const posFactors = complementTerms.map((term) => term.map((literal) => ({ ...literal, negated: !literal.negated })));
   const simplifiedExpression = formatSop(sopTerms);
   const posExpression = formatPos(posFactors);
@@ -513,16 +536,19 @@ export function analyzeFromValues(variables: string[], values: boolean[], origin
   };
   const verificationRows = assignments.map((assignment, index) => {
     const original = values[index];
+    const dontCare = dontCareSet.has(index);
     const simplified = evaluateSop(sopTerms, assignment);
     const nand = evaluateCircuit(circuits.nand, assignment);
     const nor = evaluateCircuit(circuits.nor, assignment);
-    return { index, assignment, original, simplified, nand, nor, matches: original === simplified && original === nand && original === nor };
+    const matches = dontCare || (original === simplified && original === nand && original === nor);
+    return { index, assignment, original, dontCare, simplified, nand, nor, matches };
   });
   return {
     variables,
     values,
     minterms,
     maxterms,
+    dontCares: normalizedDontCares,
     originalExpression: originalExpression?.trim() || canonical,
     simplifiedExpression,
     posExpression,

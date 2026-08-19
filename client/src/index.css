@@ -172,7 +172,21 @@ code { font-family: "IBM Plex Mono", monospace; }
 .table-key { display: flex; gap: 10px; color: #667775; font: 500 9px/1 "IBM Plex Mono", monospace; }
 .table-key span { display: flex; gap: 5px; align-items: center; }
 .table-key i { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
-.high-dot { background: #007c74; }.low-dot { background: #bbc4bc; }
+.high-dot { background: #007c74; }.low-dot { background: #bbc4bc; }.dont-care-dot { background: #c6793a; }
+.dont-care-field { margin-top: 20px; padding-top: 17px; border-top: 1px dashed rgba(222,239,235,.2); }
+.dont-care-field input { min-height: 44px; }
+.dont-care-field .field-hint { max-width: 245px; }
+.boolean-chip.is-dont-care { background: #fff0d7; border-color: #d89b5d; color: #9a5d22; }
+.kmap-card { margin-top: 18px; background: #fbfaf6; border: 1px solid #d5d7ce; }
+.kmap-scroll { overflow-x: auto; padding: 18px; }
+.kmap-axis-labels { display: flex; justify-content: space-between; margin: 0 0 8px 70px; color: #758581; text-transform: uppercase; font: 500 8px/1 "IBM Plex Mono", monospace; letter-spacing: .1em; }
+.kmap-grid { display: grid; min-width: 360px; border-top: 1px solid #cdd5ce; border-left: 1px solid #cdd5ce; }
+.kmap-corner, .kmap-header, .kmap-cell { min-height: 42px; display: grid; place-items: center; border-right: 1px solid #cdd5ce; border-bottom: 1px solid #cdd5ce; font: 600 11px/1 "IBM Plex Mono", monospace; }
+.kmap-corner, .kmap-header { color: #5f7170; background: #f0f0e9; font-size: 9px; }
+.kmap-cell { color: #607370; background: #f7f7f1; }
+.kmap-cell.is-high { color: #075f59; background: #d9eeea; }
+.kmap-cell.is-dont-care { color: #9a5d22; background: #fff0d7; box-shadow: inset 0 0 0 2px #e4be8f; }
+.kmap-note { margin: 0; padding: 0 18px 17px; color: #6d7d7b; font-size: 10px; line-height: 1.45; }
 .result-table-wrap, .proof-table-wrap { overflow-x: auto; }
 .result-table, .proof-table { width: 100%; border-collapse: collapse; font: 500 11px/1.2 "IBM Plex Mono", monospace; }
 .result-table th, .result-table td, .proof-table th, .proof-table td { padding: 9px 12px; text-align: center; border-bottom: 1px solid #e2e3dc; }
@@ -264,6 +278,16 @@ footer { max-width: 1280px; margin: 0 auto; padding: 20px 26px 30px; display: fl
 .dark .low-dot { background: #607b7c; }
 .dark .boolean-chip.is-high { color: #c9fff1; background: #184d4d; border-color: #3d9e92; }
 .dark .boolean-chip.is-low { color: #a5b7b6; background: #18323b; border-color: #38555c; }
+.dark .dont-care-field { border-top-color: rgba(222,239,235,.18); }
+.dark .boolean-chip.is-dont-care { color: #ffd49d; background: #503d2c; border-color: #d89b5d; }
+.dark .kmap-card { background: #102630; border-color: #29464e; }
+.dark .kmap-axis-labels, .dark .kmap-note { color: #9eb5b4; }
+.dark .kmap-grid { border-color: #38555c; }
+.dark .kmap-corner, .dark .kmap-header, .dark .kmap-cell { border-color: #38555c; }
+.dark .kmap-corner, .dark .kmap-header { color: #a7bfba; background: #18323b; }
+.dark .kmap-cell { color: #a5b7b6; background: #102630; }
+.dark .kmap-cell.is-high { color: #c9fff1; background: #184d4d; }
+.dark .kmap-cell.is-dont-care { color: #ffd49d; background: #503d2c; box-shadow: inset 0 0 0 2px #d89b5d; }
 .dark .diagram-expression { border-color: #38555c; }
 .dark .diagram-expression span { color: #9eb5b4; }
 .dark .diagram-frame { background: #0d2028; border-color: #29464e; }
