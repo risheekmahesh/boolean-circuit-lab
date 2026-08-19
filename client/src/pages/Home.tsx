@@ -400,6 +400,7 @@ export default function Home() {
           <span><b>BOOLEAN</b><em>CIRCUIT LAB</em></span>
         </a>
         <div className="topbar-actions">
+          <a className="modules-link" href="/modules"><CircuitBoard size={16} /> Logic modules</a>
           <a className="help-link" href="#guide"><CircleHelp size={17} /> Input guide</a>
           <ThemeToggle />
         </div>
