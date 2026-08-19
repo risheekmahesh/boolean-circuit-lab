@@ -316,7 +316,9 @@ function KMap({ analysis }: { analysis: AnalysisResult }) {
   );
 }
 
-export default function Home({ embedded = false }: { embedded?: boolean }) {
+export type AnalyzerSection = "all" | "truth" | "kmap" | "gates" | "transform" | "signal" | "verification";
+
+export default function Home({ embedded = false, visibleSection = "all" }: { embedded?: boolean; visibleSection?: AnalyzerSection }) {
   const [mode, setMode] = useState<InputMode>("expression");
   const initialExpression = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("expression") || DEFAULT_EXPRESSION : DEFAULT_EXPRESSION;
   const [expression, setExpression] = useState(initialExpression);
@@ -385,6 +387,8 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1400);
   };
+
+  const showSection = (section: Exclude<AnalyzerSection, "all">) => visibleSection === "all" || visibleSection === section;
 
   return (
     <div className={`app-shell ${embedded ? "embedded-lab" : ""}`}>
@@ -485,31 +489,31 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
               </div>
             </div>
 
-            <div className="summary-grid" id="transform">
+            {showSection("transform") && <div className="summary-grid" id="transform">
               <article className="summary-card source-card"><div className="summary-label"><span>Source function</span><FileSpreadsheet size={15} /></div><code>{analysis.originalExpression}</code><p>{analysis.variables.length} inputs · {analysis.minterms.length} high states{analysis.dontCares.length ? ` · ${analysis.dontCares.length} don't-care states` : ""}</p></article>
               <article className="summary-card optimized-card"><div className="summary-label"><span>Minimized SOP</span><button type="button" aria-label="Copy simplified expression" onClick={copySimplified}>{copied ? <Check size={15} /> : <Copy size={15} />}</button></div><code>{analysis.simplifiedExpression}</code><p>Optimized with prime implicant coverage</p></article>
               <article className="summary-card pos-card"><div className="summary-label"><span>Minimized POS</span><Layers3 size={15} /></div><code>{analysis.posExpression}</code><p>Basis for the NOR-only realization</p></article>
-            </div>
+            </div>}
 
-            <div className="signal-rule"><span>FUNCTION TRANSFORMATION</span><i /><span>INPUT → GATES → EQUIVALENCE</span></div>
+            {showSection("transform") && <div className="signal-rule"><span>FUNCTION TRANSFORMATION</span><i /><span>INPUT → GATES → EQUIVALENCE</span></div>}
 
-            <section className="table-card" id="truth-table" aria-labelledby="truth-title">
+            {showSection("truth") && <section className="table-card" id="truth-table" aria-labelledby="truth-title">
               <div className="section-heading"><div><div className="eyebrow">Truth table</div><h3 id="truth-title">Canonical behavior</h3></div><div className="table-key"><span><i className="high-dot" /> 1 high</span><span><i className="dont-care-dot" /> X don't-care</span><span><i className="low-dot" /> 0 low</span></div></div>
               <div className="result-table-wrap"><table className="result-table"><thead><tr><th>#</th>{analysis.variables.map((variable) => <th key={variable}>{variable}</th>)}<th>F</th></tr></thead><tbody>{analysis.verificationRows.map((row) => <tr key={row.index}><td>{row.index}</td>{analysis.variables.map((variable) => <td key={variable}>{row.assignment[variable] ? "1" : "0"}</td>)}<td><BooleanChip value={row.original} dontCare={row.dontCare} compact /></td></tr>)}</tbody></table></div>
-            </section>
+            </section>}
 
-            <KMap analysis={analysis} />
+            {showSection("kmap") && <KMap analysis={analysis} />}
 
-            <section className="implementation-section" id="gates">
+            {(showSection("gates") || showSection("signal")) && <section className="implementation-section" id="gates">
               <div className="section-heading"><div><div className="eyebrow">Gate synthesis</div><h3>Three equivalent implementations</h3></div><p>Each diagram is an executable signal graph.</p></div>
               <div className="circuit-stack">
                 <CircuitCard graph={analysis.circuits.standard} accent="graphite" />
                 <CircuitCard graph={analysis.circuits.nand} accent="teal" />
                 <CircuitCard graph={analysis.circuits.nor} accent="copper" />
               </div>
-            </section>
+            </section>}
 
-            <section className="verification-card" id="verify">
+            {showSection("verification") && <section className="verification-card" id="verify">
               <div className="verification-title"><div className="verification-icon"><CheckCircle2 size={22} /></div><div><div className="eyebrow">03 / Verify</div><h3>Equivalence record</h3><p>The source model and all generated forms were evaluated across all {analysis.verificationRows.length} input combinations.</p></div></div>
               <div className="verification-grid">
                 <div><span>Original</span><b>{analysis.verificationRows.filter((row) => row.original).length} high rows{analysis.dontCares.length ? ` · ${analysis.dontCares.length} X states` : ""}</b></div>
@@ -518,7 +522,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
                 <div><span>NOR-only</span><b>matches all rows</b></div>
               </div>
               <details className="proof-details"><summary>Inspect row-by-row proof <ChevronRight size={16} /></summary><div className="proof-table-wrap"><table className="proof-table"><thead><tr><th>#</th>{analysis.variables.map((variable) => <th key={variable}>{variable}</th>)}<th>Input</th><th>SOP</th><th>NAND</th><th>NOR</th><th>Check</th></tr></thead><tbody>{analysis.verificationRows.map((row) => <tr key={row.index}><td>{row.index}</td>{analysis.variables.map((variable) => <td key={variable}>{row.assignment[variable] ? "1" : "0"}</td>)}<td><BooleanChip value={row.original} dontCare={row.dontCare} compact /></td><td><BooleanChip value={row.simplified} compact /></td><td><BooleanChip value={row.nand} compact /></td><td><BooleanChip value={row.nor} compact /></td><td><span className={row.matches ? "proof-pass" : "proof-fail"}>{row.matches ? "PASS" : "FAIL"}</span></td></tr>)}</tbody></table></div></details>
-            </section>
+            </section>}
           </section>
         </section>
 

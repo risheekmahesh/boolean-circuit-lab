@@ -9,7 +9,7 @@ const featureGroups = [
     accent: "teal",
     items: [
       { href: "/lab", icon: Zap, title: "Boolean Analyser", description: "Enter and parse Boolean expressions" },
-      { href: "/lab?tab=truth-table", icon: TableProperties, title: "Truth Table", description: "Generate and inspect truth tables" },
+      { href: "/lab?tab=truth", icon: TableProperties, title: "Truth Table", description: "Generate and inspect truth tables" },
       { href: "/lab?tab=kmap", icon: Map, title: "Karnaugh Map", description: "Visual K-map minimization" },
       { href: "/lab?tab=transform", icon: RefreshCw, title: "Function Transformation", description: "SOP, POS and canonical forms" },
     ],
