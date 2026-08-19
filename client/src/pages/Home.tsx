@@ -61,70 +61,103 @@ function GatePill({ gate }: { gate: string }) {
 }
 
 function nodeDimensions(gate: CircuitNode["gate"]) {
-  if (gate === "INPUT") return { width: 52, height: 30 };
-  if (gate === "OUTPUT") return { width: 46, height: 34 };
-  if (gate === "CONST") return { width: 52, height: 36 };
-  return { width: 82, height: 42 };
+  if (gate === "INPUT") return { width: 88, height: 36 };
+  if (gate === "OUTPUT") return { width: 70, height: 42 };
+  if (gate === "CONST") return { width: 72, height: 36 };
+  return { width: 104, height: 64 };
+}
+
+function gatePath(gate: CircuitNode["gate"], width: number, height: number) {
+  if (gate === "AND" || gate === "NAND") {
+    return `M 8 8 H ${width - 46} A 27 24 0 0 1 ${width - 46} ${height - 8} H 8 Z`;
+  }
+  if (gate === "OR" || gate === "NOR") {
+    return `M 8 8 Q 38 ${height / 2} 8 ${height - 8} Q ${width - 42} ${height - 5} ${width - 8} ${height / 2} Q ${width - 42} 5 8 8 Z`;
+  }
+  return `M 10 8 L ${width - 22} ${height / 2} L 10 ${height - 8} Z`;
 }
 
 function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
   const layout = useMemo(() => {
     const grouped = new Map<number, CircuitNode[]>();
-    graph.nodes.forEach((current) => {
-      grouped.set(current.column, [...(grouped.get(current.column) ?? []), current]);
-    });
+    graph.nodes.forEach((current) => grouped.set(current.column, [...(grouped.get(current.column) ?? []), current]));
     const maxColumn = Math.max(...graph.nodes.map((item) => item.column));
     const maxRows = Math.max(...Array.from(grouped.values()).map((items) => items.length));
-    const width = Math.max(760, 130 + maxColumn * 170 + 120);
-    const height = Math.max(310, 74 + maxRows * 70);
+    const height = Math.max(270, 80 + maxRows * 58);
+    const columnX = new Map<number, number>();
+    let nextX = 24;
+    for (let column = 0; column <= maxColumn; column += 1) {
+      columnX.set(column, nextX);
+      const widest = Math.max(...(grouped.get(column) ?? []).map((item) => nodeDimensions(item.gate).width), 88);
+      nextX += widest + 112;
+    }
     const position = new Map<string, { x: number; y: number }>();
     grouped.forEach((items, column) => {
-      const spacing = Math.max(64, (height - 86) / Math.max(items.length, 1));
-      items.forEach((current, index) => {
-        position.set(current.id, { x: 40 + column * 170, y: 42 + index * spacing });
-      });
+      const totalHeight = items.length * 42 + Math.max(0, items.length - 1) * 20;
+      const startY = Math.max(26, (height - totalHeight) / 2);
+      items.forEach((current, index) => position.set(current.id, { x: columnX.get(column) ?? 24, y: startY + index * 62 }));
     });
-    return { width, height, position };
+    return { width: Math.max(720, nextX - 16), height, position };
   }, [graph]);
+
+  const idSuffix = graph.title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  const edges = graph.nodes.flatMap((target) => Array.from(new Set(target.inputs)).map((sourceId) => ({ target, sourceId })));
+  const sourceUseCount = new Map<string, number>();
+  edges.forEach(({ sourceId }) => sourceUseCount.set(sourceId, (sourceUseCount.get(sourceId) ?? 0) + 1));
+  const portY = (point: { x: number; y: number }, size: { width: number; height: number }, gate: CircuitNode["gate"], inputIndex: number, inputCount: number) => {
+    if (!["AND", "OR", "NAND", "NOR", "NOT"].includes(gate)) return point.y + size.height / 2;
+    const spacing = inputCount > 2 ? 15 : 19;
+    return point.y + size.height / 2 + (inputIndex - (inputCount - 1) / 2) * spacing;
+  };
 
   return (
     <div className="diagram-frame" aria-label={`${graph.title} graphical circuit diagram`}>
       <svg viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" preserveAspectRatio="xMinYMin meet">
         <defs>
-          <pattern id="draft-grid" width="12" height="12" patternUnits="userSpaceOnUse">
+          <pattern id={`draft-grid-${idSuffix}`} width="12" height="12" patternUnits="userSpaceOnUse">
             <path d="M 12 0 L 0 0 0 12" fill="none" stroke="rgba(25, 48, 50, 0.08)" strokeWidth="0.65" />
           </pattern>
-          <marker id="signal-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+          <marker id={`signal-arrow-${idSuffix}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#007C74" />
           </marker>
         </defs>
-        <rect x="0" y="0" width={layout.width} height={layout.height} fill="url(#draft-grid)" />
-        {graph.nodes.flatMap((target) => Array.from(new Set(target.inputs)).map((sourceId) => ({ target, sourceId }))).map(({ target, sourceId }) => {
+        <rect x="0" y="0" width={layout.width} height={layout.height} fill={`url(#draft-grid-${idSuffix})`} />
+        {edges.map(({ target, sourceId }) => {
           const source = graph.nodes.find((item) => item.id === sourceId);
           const sourcePosition = layout.position.get(sourceId);
           const targetPosition = layout.position.get(target.id);
           if (!source || !sourcePosition || !targetPosition) return null;
           const sourceSize = nodeDimensions(source.gate);
           const targetSize = nodeDimensions(target.gate);
-          const startX = sourcePosition.x + sourceSize.width;
+          const sourceOutputOffset = source.gate === "INPUT" ? sourceSize.width + 18 : source.gate === "NOT" ? sourceSize.width - 12 : ["NAND", "NOR"].includes(source.gate) ? sourceSize.width - 2 : ["AND", "OR"].includes(source.gate) ? sourceSize.width - 8 : sourceSize.width;
+          const targetInputOffset = target.gate === "NOT" ? 10 : ["AND", "OR", "NAND", "NOR"].includes(target.gate) ? 8 : 0;
+          const startX = sourcePosition.x + sourceOutputOffset;
           const startY = sourcePosition.y + sourceSize.height / 2;
-          const endX = targetPosition.x;
-          const endY = targetPosition.y + targetSize.height / 2;
-          const midpoint = startX + (endX - startX) * 0.48;
-          return <path key={`${sourceId}-${target.id}`} className="diagram-wire" d={`M ${startX} ${startY} H ${midpoint} V ${endY} H ${endX - 5}`} markerEnd="url(#signal-arrow)" />;
+          const endX = targetPosition.x + targetInputOffset;
+          const inputIndex = target.inputs.indexOf(sourceId);
+          const endY = portY(targetPosition, targetSize, target.gate, inputIndex, target.inputs.length);
+          const branchX = sourceUseCount.get(sourceId)! > 1 ? startX + 28 : startX + Math.max(26, (endX - startX) * 0.46);
+          return <path key={`${sourceId}-${target.id}`} className="diagram-wire" d={`M ${startX} ${startY} H ${branchX} V ${endY} H ${endX}`} markerEnd={`url(#signal-arrow-${idSuffix})`} />;
         })}
         {graph.nodes.map((current) => {
           const point = layout.position.get(current.id)!;
           const size = nodeDimensions(current.gate);
-          const isLogicGate = !["INPUT", "OUTPUT", "CONST"].includes(current.gate);
+          const isLogicGate = ["AND", "OR", "NAND", "NOR", "NOT"].includes(current.gate);
+          const bubble = current.gate === "NAND" || current.gate === "NOR" || current.gate === "NOT";
+          const bubbleX = current.gate === "NOT" ? size.width - 17 : size.width - 7;
           return (
             <g key={current.id} transform={`translate(${point.x}, ${point.y})`}>
-              {current.gate === "INPUT" && <circle className="signal-dot" cx="0" cy={size.height / 2} r="4.5" />}
-              <rect className={`circuit-node gate-shape-${current.gate.toLowerCase()}`} width={size.width} height={size.height} rx={current.gate === "INPUT" ? 15 : 5} />
-              {isLogicGate && <path className="gate-arc" d={`M 6 7 Q 21 ${size.height / 2} 6 ${size.height - 7}`} />}
-              <text className={`circuit-node-label label-${current.gate.toLowerCase()}`} x={size.width / 2} y={size.height / 2 + 4} textAnchor="middle">{current.label}</text>
+              {current.gate === "INPUT" && <><rect className="input-terminal" width={size.width} height={size.height} rx="17" /><text className="terminal-label" x="22" y="23" textAnchor="middle">{current.label}</text><path className="terminal-stub" d={`M ${size.width} ${size.height / 2} H ${size.width + 18}`} /></>}
+              {current.gate === "OUTPUT" && <><path className="output-stub" d={`M 0 ${size.height / 2} H 12`} /><rect className="output-terminal" x="12" y="3" width={size.width - 12} height={size.height - 6} rx="12" /><text className="output-label" x={size.width / 2 + 6} y={size.height / 2 + 5} textAnchor="middle">{current.label}</text></>}
+              {current.gate === "CONST" && <><rect className="const-terminal" width={size.width} height={size.height} rx="10" /><text className="const-label" x={size.width / 2} y={size.height / 2 + 4} textAnchor="middle">CONST {current.label}</text></>}
+              {isLogicGate && <><path className={`logic-gate gate-shape-${current.gate.toLowerCase()}`} d={gatePath(current.gate, size.width, size.height)} /><text className="gate-name" x={current.gate === "NOT" ? 34 : 48} y={size.height / 2 + 4} textAnchor="middle">{current.label}</text>{bubble && <circle className="gate-bubble" cx={bubbleX} cy={size.height / 2} r="5" />}</>}
             </g>
           );
+        })}
+        {graph.nodes.filter((node) => (sourceUseCount.get(node.id) ?? 0) > 1).map((source) => {
+          const point = layout.position.get(source.id)!;
+          const size = nodeDimensions(source.gate);
+          return <circle key={`junction-${source.id}`} className="junction-dot" cx={point.x + size.width + 28} cy={point.y + size.height / 2} r="4" />;
         })}
       </svg>
     </div>
@@ -133,16 +166,18 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
 
 function CircuitCard({ graph, accent }: { graph: CircuitGraph; accent: string }) {
   const gateCount = graph.nodes.filter((node) => !["INPUT", "OUTPUT", "CONST"].includes(node.gate)).length;
+  const heading = graph.title === "AND · OR · NOT" ? "AND–OR–NOT" : graph.title.toUpperCase();
+  const subtitle = graph.title === "AND · OR · NOT" ? "Standard gate implementation" : graph.title === "NAND-only" ? "Universal NAND implementation" : "Universal NOR implementation";
   return (
     <article className={`circuit-card accent-${accent}`}>
       <div className="circuit-card-header">
         <div>
-          <div className="eyebrow">Circuit implementation</div>
-          <h3>{graph.title}</h3>
+          <div className="eyebrow">GATE-LEVEL IMPLEMENTATION</div>
+          <h3>{heading}</h3>
         </div>
         <div className="gate-summary"><CircuitBoard size={16} /><span>{gateCount} gates</span></div>
       </div>
-      <p>{graph.caption}</p>
+      <p>{subtitle}. {graph.caption}</p>
       <div className="diagram-expression"><span>Derived form</span><code>{graph.expression}</code></div>
       <CircuitDiagram graph={graph} />
     </article>
