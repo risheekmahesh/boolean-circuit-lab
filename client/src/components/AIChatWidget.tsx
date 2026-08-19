@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Bot, MessageCircle, Send, X } from "lucide-react";
 import { useLocation } from "wouter";
 
@@ -22,8 +22,19 @@ export default function AIChatWidget() {
 
   const pageContext = useMemo(() => {
     if (location.startsWith("/modules")) return "Digital logic modules page: half adder, full adder, half subtractor, full subtractor, and 2-bit by 2-bit multiplier.";
+    if (location.startsWith("/signal")) return "Boolean Circuit Lab signal graph view: gate-level signal propagation and live circuit paths.";
+    if (location.startsWith("/verify")) return "Boolean Circuit Lab verification view: exhaustive row-by-row equivalence checks.";
+    if (location.startsWith("/settings")) return "Boolean Circuit Lab settings view.";
     return "Boolean Circuit Lab analyzer page: Boolean expression minimization, don't-care terms, truth table, Karnaugh map, and gate-level implementations.";
   }, [location]);
+
+  useEffect(() => {
+    const openAssistant = () => setOpen(true);
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    window.addEventListener("open-logic-assistant", openAssistant);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => { window.removeEventListener("open-logic-assistant", openAssistant); window.removeEventListener("keydown", closeOnEscape); };
+  }, []);
 
   const sendMessage = async () => {
     const question = draft.trim();
@@ -50,6 +61,7 @@ export default function AIChatWidget() {
 
   return (
     <>
+      {open && <button type="button" className="assistant-backdrop" aria-label="Close logic assistant" onClick={() => setOpen(false)} />}
       {open && (
         <aside className="assistant-panel" aria-label="Digital logic AI assistant">
           <div className="assistant-header">

@@ -1,0 +1,6 @@
+import { Check, Settings as SettingsIcon, SlidersHorizontal } from "lucide-react";
+import ThemeToggle from "@/components/ThemeToggle";
+
+export default function Settings() {
+  return <div className="settings-page"><section className="dashboard-page-heading"><div><div className="eyebrow">WORKBENCH / SETTINGS</div><h1>Configure your workspace.</h1><p>Preferences stay lightweight and local so the circuit tools remain fast and private.</p></div><div className="dashboard-page-badge"><SettingsIcon size={18} /><span>PREFERENCES</span></div></section><div className="settings-grid"><section className="settings-card"><div className="settings-card-heading"><SlidersHorizontal size={18} /><div><h2>Appearance</h2><p>Choose the visual mode for the workbench.</p></div></div><div className="settings-row"><div><strong>Theme</strong><span>Switch between the light technical paper and dark lab modes.</span></div><ThemeToggle /></div></section><section className="settings-card"><div className="settings-card-heading"><Check size={18} /><div><h2>Verification defaults</h2><p>Current analyzer limits and behavior.</p></div></div><div className="settings-stat-grid"><div><span>VARIABLES</span><strong>Up to 6</strong></div><div><span>VERIFICATION</span><strong>Every state</strong></div><div><span>DATA STORAGE</span><strong>None</strong></div></div></section></div></div>;
+}

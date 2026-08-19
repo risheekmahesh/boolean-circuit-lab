@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { Calculator, CircuitBoard, GitBranch, Plus, RefreshCw } from "lucide-react";
-import { Link } from "wouter";
 import {
   Bit,
   bitString,
@@ -243,13 +242,14 @@ function MultiplierCard() {
 }
 
 export default function AdvancedModules() {
+  const [filter, setFilter] = useState<"all" | "adders" | "subtractors" | "multiplier">("all");
   return <div className="modules-page">
-    <header className="modules-topbar"><Link className="brand" href="/"><svg className="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><rect className="brand-mark-bg" x="1" y="1" width="38" height="38" rx="10" /><path className="brand-mark-trace" d="M7 12h9M7 20h9M7 28h9M16 12v16M16 20h7" /><circle className="brand-mark-node" cx="16" cy="20" r="2.2" /><path className="brand-mark-gate" d="M23 14h2.5a6 6 0 0 1 0 12H23z" /><path className="brand-mark-trace" d="M28 20h5" /><circle className="brand-mark-node" cx="33" cy="20" r="1.8" /></svg><span><b>BOOLEAN</b><em>CIRCUIT LAB</em></span></Link><nav className="modules-nav"><a href="#adders">Adders</a><a href="#subtractors">Subtractors</a><a href="#multiplier">Multiplier</a><Link href="/">Back to lab</Link></nav></header>
     <main className="modules-main">
       <div className="modules-hero"><div className="eyebrow"><Plus size={14} /> CIRCUIT MODULES / INTERACTIVE LAB</div><h1>Arithmetic circuits,<br /><i>explained by signals.</i></h1><p>Toggle real input switches, read the highlighted truth-table row, scale the gate-level canvas, and follow every signal from input to output.</p></div>
-      <section id="adders" className="module-section"><div className="module-section-heading"><div><div className="eyebrow">01 / ADDERS</div><h2>Build the sum.</h2></div><span>SUM · CARRY · CARRY-IN</span></div><HalfAdderCard /><FullAdderCard /></section>
-      <section id="subtractors" className="module-section"><div className="module-section-heading"><div><div className="eyebrow">02 / SUBTRACTORS</div><h2>Trace the difference.</h2></div><span>DIFFERENCE · BORROW</span></div><HalfSubtractorCard /><FullSubtractorCard /></section>
-      <section id="multiplier" className="module-section"><div className="module-section-heading"><div><div className="eyebrow">03 / MULTIPLIER</div><h2>Multiply with partial products.</h2></div><span>AND ARRAY · HALF ADDERS · PRODUCT</span></div><MultiplierCard /></section>
+      <nav className="module-filter-bar" aria-label="Filter arithmetic modules">{([['all', 'All'], ['adders', 'Adders'], ['subtractors', 'Subtractors'], ['multiplier', 'Multiplier']] as const).map(([value, label]) => <button type="button" key={value} className={filter === value ? "is-active" : ""} onClick={() => setFilter(value)}>{label}</button>)}</nav>
+      {filter === "all" || filter === "adders" ? <section id="adders" className="module-section"><div className="module-section-heading"><div><div className="eyebrow">01 / ADDERS</div><h2>Build the sum.</h2></div><span>SUM · CARRY · CARRY-IN</span></div><HalfAdderCard /><FullAdderCard /></section> : null}
+      {filter === "all" || filter === "subtractors" ? <section id="subtractors" className="module-section"><div className="module-section-heading"><div><div className="eyebrow">02 / SUBTRACTORS</div><h2>Trace the difference.</h2></div><span>DIFFERENCE · BORROW</span></div><HalfSubtractorCard /><FullSubtractorCard /></section> : null}
+      {filter === "all" || filter === "multiplier" ? <section id="multiplier" className="module-section"><div className="module-section-heading"><div><div className="eyebrow">03 / MULTIPLIER</div><h2>Multiply with partial products.</h2></div><span>AND ARRAY · HALF ADDERS · PRODUCT</span></div><MultiplierCard /></section> : null}
       <div className="modules-callout"><Calculator size={19} /><span>Every module is deterministic and live. Toggle any input or adjust the circuit scale to inspect the same logic at a comfortable size.</span><RefreshCw size={17} /></div>
     </main>
   </div>;

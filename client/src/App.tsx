@@ -3,44 +3,20 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import AdvancedModules from "@/pages/AdvancedModules";
 import AIChatWidget from "@/components/AIChatWidget";
+import DashboardShell from "@/components/DashboardShell";
+import LabPage from "@/pages/LabPage";
+import Overview from "@/pages/Overview";
+import Settings from "@/pages/Settings";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Home from "./pages/Home";
-
 
 function Router() {
-  return (
-    <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/modules"} component={AdvancedModules} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
-      <Route component={NotFound} />
-    </Switch>
-  );
+  return <DashboardShell><Switch><Route path="/" component={Overview} /><Route path="/lab" component={LabPage} /><Route path="/modules" component={AdvancedModules} /><Route path="/signal" component={LabPage} /><Route path="/verify" component={LabPage} /><Route path="/settings" component={Settings} /><Route path="/404" component={NotFound} /><Route component={NotFound} /></Switch></DashboardShell>;
 }
 
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
 function App() {
-  return (
-    <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        switchable
-      >
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-          <AIChatWidget />
-        </TooltipProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
-  );
+  return <ErrorBoundary><ThemeProvider defaultTheme="light" switchable><TooltipProvider><Toaster /><Router /><AIChatWidget /></TooltipProvider></ThemeProvider></ErrorBoundary>;
 }
 
 export default App;
