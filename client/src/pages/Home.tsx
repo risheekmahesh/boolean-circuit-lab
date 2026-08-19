@@ -41,8 +41,6 @@ type TermKind = "minterms" | "maxterms";
 
 const HERO_ASSET = "/manus-storage/circuit-atlas-hero_7678a108.jpg";
 const DETAIL_ASSET = "/manus-storage/circuit-atlas-diagram-detail_647595c6.jpg";
-const LOGO_ASSET = "/manus-storage/circuit-atlas-logo_fb4a06f0.png";
-
 const DEFAULT_EXPRESSION = "A'B + AB' + AC";
 const DEFAULT_TRUTH = [false, true, true, false, true, true, true, true];
 
@@ -391,7 +389,14 @@ export default function Home() {
     <div className="app-shell">
       <header className="topbar">
         <a className="brand" href="#top" aria-label="Boolean Circuit Lab home">
-          <img src={LOGO_ASSET} alt="" />
+          <svg className="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+            <rect className="brand-mark-bg" x="1" y="1" width="38" height="38" rx="10" />
+            <path className="brand-mark-trace" d="M7 12h9M7 20h9M7 28h9M16 12v16M16 20h7" />
+            <circle className="brand-mark-node" cx="16" cy="20" r="2.2" />
+            <path className="brand-mark-gate" d="M23 14h2.5a6 6 0 0 1 0 12H23z" />
+            <path className="brand-mark-trace" d="M28 20h5" />
+            <circle className="brand-mark-node" cx="33" cy="20" r="1.8" />
+          </svg>
           <span><b>BOOLEAN</b><em>CIRCUIT LAB</em></span>
         </a>
         <div className="topbar-actions">
