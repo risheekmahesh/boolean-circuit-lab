@@ -1,4 +1,4 @@
-import { askAssistant, type AssistantRequest } from "../server/assistantProvider";
+import { askAssistant, type AssistantRequest } from "../server/assistantProvider.ts";
 
 type RequestBody = Partial<AssistantRequest>;
 
