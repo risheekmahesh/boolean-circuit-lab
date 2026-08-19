@@ -155,29 +155,34 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
     const spacing = inputCount > 2 ? 15 : 19;
     return point.y + size.height / 2 + (inputIndex - (inputCount - 1) / 2) * spacing;
   };
-  const wireRoutes: { id: string; path: string; arrow: boolean }[] = [];
-  const junctions: { id: string; x: number; y: number }[] = [];
+  const wireRoutes: { id: string; path: string; arrow: boolean; sourceId: string }[] = [];
+  const junctions: { id: string; x: number; y: number; sourceId: string }[] = [];
+  const wireSourceClass = (sourceId: string) => {
+    const source = graph.nodes.find((node) => node.id === sourceId);
+    if (source?.gate === "INPUT") return source.label.toLowerCase();
+    return "derived";
+  };
   sourceEdges.forEach((connections, sourceId) => {
     const source = graph.nodes.find((item) => item.id === sourceId);
     const sourcePosition = layout.position.get(sourceId);
     if (!source || !sourcePosition) return;
     const sourceSize = nodeDimensions(source.gate);
-    const sourceOutputOffset = source.gate === "INPUT" ? sourceSize.width + 18 : source.gate === "NOT" ? sourceSize.width - 12 : source.gate === "NAND" ? sourceSize.width - 4 : ["NOR"].includes(source.gate) ? sourceSize.width - 2 : ["AND", "OR"].includes(source.gate) ? sourceSize.width - 8 : sourceSize.width;
+    const sourceOutputOffset = source.gate === "INPUT" ? sourceSize.width + 18 : source.gate === "NOT" ? sourceSize.width - 12 : ["NAND", "NOR"].includes(source.gate) ? sourceSize.width - 4 : ["AND", "OR"].includes(source.gate) ? sourceSize.width - 8 : sourceSize.width;
     const startX = sourcePosition.x + sourceOutputOffset;
     const startY = sourcePosition.y + sourceSize.height / 2;
     if (connections.length > 1) {
       const branchX = startX + 30 + laneOffset(sourceId);
-      wireRoutes.push({ id: `${sourceId}-trunk`, path: `M ${startX} ${startY} H ${branchX}`, arrow: false });
-      junctions.push({ id: sourceId, x: branchX, y: startY });
+      wireRoutes.push({ id: `${sourceId}-trunk`, path: `M ${startX} ${startY} H ${branchX}`, arrow: false, sourceId });
+      junctions.push({ id: sourceId, x: branchX, y: startY, sourceId });
       connections.forEach(({ target, sourceId: targetSourceId }) => {
         const targetPosition = layout.position.get(target.id);
         if (!targetPosition) return;
         const targetSize = nodeDimensions(target.gate);
-        const targetInputOffset = target.gate === "NOT" ? 10 : target.gate === "NAND" ? 6 : ["AND", "OR", "NOR"].includes(target.gate) ? 8 : 0;
+        const targetInputOffset = target.gate === "NOT" ? 10 : ["NAND", "NOR"].includes(target.gate) ? 6 : ["AND", "OR"].includes(target.gate) ? 8 : 0;
         const endX = targetPosition.x + targetInputOffset;
         const inputIndex = target.inputs.indexOf(targetSourceId);
         const endY = portY(targetPosition, targetSize, target.gate, inputIndex, target.inputs.length);
-        wireRoutes.push({ id: `${sourceId}-${target.id}`, path: `M ${branchX} ${startY} V ${endY} H ${endX}`, arrow: true });
+        wireRoutes.push({ id: `${sourceId}-${target.id}`, path: `M ${branchX} ${startY} V ${endY} H ${endX}`, arrow: true, sourceId });
       });
       return;
     }
@@ -185,16 +190,17 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
     const targetPosition = layout.position.get(onlyConnection.target.id);
     if (!targetPosition) return;
     const targetSize = nodeDimensions(onlyConnection.target.gate);
-    const targetInputOffset = onlyConnection.target.gate === "NOT" ? 10 : onlyConnection.target.gate === "NAND" ? 6 : ["AND", "OR", "NOR"].includes(onlyConnection.target.gate) ? 8 : 0;
+    const targetInputOffset = onlyConnection.target.gate === "NOT" ? 10 : ["NAND", "NOR"].includes(onlyConnection.target.gate) ? 6 : ["AND", "OR"].includes(onlyConnection.target.gate) ? 8 : 0;
     const endX = targetPosition.x + targetInputOffset;
     const inputIndex = onlyConnection.target.inputs.indexOf(sourceId);
     const endY = portY(targetPosition, targetSize, onlyConnection.target.gate, inputIndex, onlyConnection.target.inputs.length);
     const channelX = startX + 30 + laneOffset(sourceId);
-    wireRoutes.push({ id: `${sourceId}-${onlyConnection.target.id}`, path: `M ${startX} ${startY} H ${channelX} V ${endY} H ${endX}`, arrow: true });
+    wireRoutes.push({ id: `${sourceId}-${onlyConnection.target.id}`, path: `M ${startX} ${startY} H ${channelX} V ${endY} H ${endX}`, arrow: true, sourceId });
   });
 
   return (
     <div className="diagram-frame" aria-label={`${graph.title} graphical circuit diagram`}>
+      {(graph.title === "NAND-only" || graph.title === "NOR-only") && <div className="diagram-wire-legend" aria-label="Signal wire legend"><span className="wire-legend-item wire-source-a"><i />A</span><span className="wire-legend-item wire-source-b"><i />B</span><span className="wire-legend-item wire-source-c"><i />C</span><span className="wire-legend-item wire-source-derived"><i />Derived</span></div>}
       <svg viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" preserveAspectRatio="xMinYMin meet">
         <defs>
           <pattern id={`draft-grid-${idSuffix}`} width="12" height="12" patternUnits="userSpaceOnUse">
@@ -205,7 +211,7 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
           </marker>
         </defs>
         <rect x="0" y="0" width={layout.width} height={layout.height} fill={`url(#draft-grid-${idSuffix})`} />
-        {wireRoutes.map((route) => <path key={route.id} className={`diagram-wire ${route.arrow ? "has-arrow" : "wire-trunk"}`} d={route.path} markerEnd={route.arrow ? `url(#signal-arrow-${idSuffix})` : undefined} />)}
+        {wireRoutes.map((route) => <path key={route.id} className={`diagram-wire wire-source-${wireSourceClass(route.sourceId)} ${route.arrow ? "has-arrow" : "wire-trunk"}`} d={route.path} markerEnd={route.arrow ? `url(#signal-arrow-${idSuffix})` : undefined} />)}
         {graph.nodes.map((current) => {
           const point = layout.position.get(current.id)!;
           const size = nodeDimensions(current.gate);
@@ -221,7 +227,7 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
             </g>
           );
         })}
-        {junctions.map((junction) => <circle key={`junction-${junction.id}`} className="junction-dot" cx={junction.x} cy={junction.y} r="4" />)}
+        {junctions.map((junction) => <circle key={`junction-${junction.id}`} className={`junction-dot wire-source-${wireSourceClass(junction.sourceId)}`} cx={junction.x} cy={junction.y} r="4" />)}
       </svg>
     </div>
   );

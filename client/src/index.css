@@ -211,6 +211,13 @@ code { font-family: "IBM Plex Mono", monospace; }
 .diagram-expression span { color: #758581; text-transform: uppercase; white-space: nowrap; font: 500 8px/1.5 "IBM Plex Mono", monospace; letter-spacing: .12em; }
 .diagram-expression code { color: #25484a; font-size: 11px; overflow-x: auto; white-space: nowrap; }
 .diagram-frame { margin: 0 18px 18px; min-height: 270px; overflow-x: auto; border: 1px solid #d8dcd4; background: #f2f1ea; }
+.diagram-wire-legend { display: flex; gap: 14px; align-items: center; padding: 8px 12px 0; color: #526864; font: 600 9px/1.2 "IBM Plex Mono", monospace; text-transform: uppercase; letter-spacing: .08em; }
+.wire-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.wire-legend-item i { display: inline-block; width: 18px; height: 2px; background: currentColor; }
+.wire-legend-item.wire-source-a { color: #c47b2c; }
+.wire-legend-item.wire-source-b { color: #3478a8; }
+.wire-legend-item.wire-source-c { color: #785ca8; }
+.wire-legend-item.wire-source-derived { color: #007c74; }
 .diagram-frame svg { display: block; min-width: 720px; width: 100%; height: auto; }
 .input-terminal { fill: #183234; stroke: #75b6af; stroke-width: 1.3; }
 .terminal-label { fill: #f7fffc; font: 700 13px "IBM Plex Mono", monospace; }
@@ -240,7 +247,23 @@ code { font-family: "IBM Plex Mono", monospace; }
 .dark .gate-name { fill: #dff7ef; }
 .dark .gate-bubble { fill: #102630; stroke: #4be1bd; }
 .dark .junction-dot { fill: #4be1bd; stroke: #102630; }
-.diagram-wire { fill: none; stroke: #007c74; stroke-width: 1.5; opacity: .78; }
+.diagram-wire { fill: none; stroke: #007c74; stroke-width: 1.8; opacity: .9; stroke-linecap: square; stroke-linejoin: miter; }
+.diagram-wire.wire-source-a, .junction-dot.wire-source-a { stroke: #c47b2c; }
+.diagram-wire.wire-source-b, .junction-dot.wire-source-b { stroke: #3478a8; }
+.diagram-wire.wire-source-c, .junction-dot.wire-source-c { stroke: #785ca8; }
+.diagram-wire.wire-source-derived, .junction-dot.wire-source-derived { stroke: #007c74; }
+.junction-dot.wire-source-a { fill: #c47b2c; }
+.junction-dot.wire-source-b { fill: #3478a8; }
+.junction-dot.wire-source-c { fill: #785ca8; }
+.junction-dot.wire-source-derived { fill: #007c74; }
+.dark .diagram-wire.wire-source-a, .dark .junction-dot.wire-source-a { stroke: #e6b260; }
+.dark .diagram-wire.wire-source-b, .dark .junction-dot.wire-source-b { stroke: #7fc3f0; }
+.dark .diagram-wire.wire-source-c, .dark .junction-dot.wire-source-c { stroke: #c2a4ef; }
+.dark .diagram-wire.wire-source-derived, .dark .junction-dot.wire-source-derived { stroke: #4be1bd; }
+.dark .junction-dot.wire-source-a { fill: #e6b260; }
+.dark .junction-dot.wire-source-b { fill: #7fc3f0; }
+.dark .junction-dot.wire-source-c { fill: #c2a4ef; }
+.dark .junction-dot.wire-source-derived { fill: #4be1bd; }
 .signal-dot { fill: #007c74; }
 .circuit-node { stroke: #1e4041; stroke-width: 1.2; fill: #fcfbf6; }.gate-shape-input { fill: #183234; stroke: #183234; }.gate-shape-output { fill: #007c74; stroke: #007c74; }.gate-shape-const { fill: #ecece4; }.gate-shape-nand, .gate-shape-nor { fill: #d8ede9; stroke: #007c74; }.gate-shape-not { fill: #fff1df; stroke: #b96b32; }
 .gate-arc { fill: none; stroke: rgba(24,50,52,.42); stroke-width: 1; }.circuit-node-label { font: 600 10px "IBM Plex Mono", monospace; fill: #173738; }.label-input, .label-output { fill: #ffffff; }.label-const { fill: #536967; }
@@ -319,6 +342,11 @@ footer { max-width: 1280px; margin: 0 auto; padding: 20px 26px 30px; display: fl
 .dark .diagram-expression { border-color: #38555c; }
 .dark .diagram-expression span { color: #9eb5b4; }
 .dark .diagram-frame { background: #0d2028; border-color: #29464e; }
+.dark .diagram-wire-legend { color: #b8ceca; }
+.dark .wire-legend-item.wire-source-a { color: #e6b260; }
+.dark .wire-legend-item.wire-source-b { color: #7fc3f0; }
+.dark .wire-legend-item.wire-source-c { color: #c2a4ef; }
+.dark .wire-legend-item.wire-source-derived { color: #4be1bd; }
 .dark .diagram-frame svg rect[fill^="url(#draft-grid-"] { opacity: .35; }
 .dark .circuit-node { fill: #19343d; stroke: #79c9c0; }
 .dark .gate-shape-input { fill: #0b171d; stroke: #79c9c0; }
