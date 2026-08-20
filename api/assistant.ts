@@ -46,6 +46,11 @@ function safeHistory(value: unknown): ChatTurn[] {
   )).filter((turn) => turn.content.trim()).slice(-6);
 }
 
+function normalizedGeminiModel(value: string) {
+  const model = value.trim().replace(/^models\//, "");
+  return model || "gemini-3.6-flash";
+}
+
 async function askOpenAICompatible(request: AssistantRequest, apiKey: string) {
   const apiBase = (process.env.ASSISTANT_API_BASE || process.env.OPENAI_API_BASE || "https://api.openai.com/v1").replace(/\/$/, "");
   const model = process.env.ASSISTANT_MODEL || "gpt-5-mini";
@@ -74,15 +79,15 @@ async function askGoogle(request: AssistantRequest, apiKey: string) {
   const explicitGoogleBase = process.env.ASSISTANT_GOOGLE_API_BASE;
   const configuredBase = process.env.ASSISTANT_API_BASE;
   const apiBase = (explicitGoogleBase || (configuredBase?.includes("generativelanguage.googleapis.com") ? configuredBase : "https://generativelanguage.googleapis.com/v1beta")).replace(/\/$/, "");
-  const model = process.env.ASSISTANT_MODEL || "gemini-2.0-flash";
+  const model = normalizedGeminiModel(process.env.ASSISTANT_MODEL || "gemini-3.6-flash");
   const contents = [
     { role: "user", parts: [{ text: `${SYSTEM_PROMPT}\n\nCurrent page context: ${request.page}` }] },
     ...request.history.map((turn) => ({ role: turn.role === "assistant" ? "model" : "user", parts: [{ text: turn.content }] })),
     { role: "user", parts: [{ text: request.question }] },
   ];
-  const upstream = await fetch(`${apiBase}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+  const upstream = await fetch(`${apiBase}/models/${encodeURIComponent(model)}:generateContent`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
     body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 700, temperature: 0.2 } }),
   });
   const payload = await upstream.json().catch(() => ({}));
