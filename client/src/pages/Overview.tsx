@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, CheckCircle2, CircuitBoard, FunctionSquare, GitBranch, Layers3, Map, Play, Plus, RefreshCw, Search, TableProperties, Zap } from "lucide-react";
+import { ArrowRight, CheckCircle2, CircuitBoard, FileText, FunctionSquare, GitBranch, Layers3, Map, Play, Plus, RefreshCw, Search, TableProperties, Zap } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 const featureGroups = [
@@ -12,6 +12,14 @@ const featureGroups = [
       { href: "/lab?tab=truth", icon: TableProperties, title: "Truth Table", description: "Generate and inspect truth tables" },
       { href: "/lab?tab=kmap", icon: Map, title: "Karnaugh Map", description: "Visual K-map minimization" },
       { href: "/lab?tab=transform", icon: RefreshCw, title: "Function Transformation", description: "SOP, POS and canonical forms" },
+    ],
+  },
+  {
+    eyebrow: "PROBLEM SOLVER",
+    title: "Start with the prompt.",
+    accent: "teal",
+    items: [
+      { href: "/problem", icon: FileText, title: "Problem Statement", description: "Type or upload a circuit problem" },
     ],
   },
   {

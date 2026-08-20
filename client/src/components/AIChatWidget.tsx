@@ -21,6 +21,7 @@ export default function AIChatWidget() {
   const [error, setError] = useState("");
 
   const pageContext = useMemo(() => {
+    if (location.startsWith("/problem")) return "Problem Statement Solver workspace: the user is typing or reviewing an uploaded digital-circuit problem before sending it to Gemini.";
     if (location.startsWith("/modules")) return "Digital logic modules page: half adder, full adder, half subtractor, full subtractor, and 2-bit by 2-bit multiplier.";
     if (location.startsWith("/verify")) return "Boolean Circuit Lab verification view: exhaustive row-by-row equivalence checks.";
     if (location.startsWith("/settings")) return "Boolean Circuit Lab settings view.";
@@ -66,7 +67,7 @@ export default function AIChatWidget() {
       {open && (
         <aside className="assistant-panel" aria-label="Digital logic AI assistant">
           <div className="assistant-header">
-            <div className="assistant-title"><span className="assistant-icon"><Bot size={18} /></span><span><strong>Logic assistant</strong><small>Context: {location.startsWith("/modules") ? "Modules" : "Boolean lab"}</small></span></div>
+            <div className="assistant-title"><span className="assistant-icon"><Bot size={18} /></span><span><strong>Logic assistant</strong><small>Context: {location.startsWith("/problem") ? "Problem solver" : location.startsWith("/modules") ? "Modules" : "Boolean lab"}</small></span></div>
             <button type="button" className="assistant-close" aria-label="Close assistant" onClick={() => setOpen(false)}><X size={17} /></button>
           </div>
           <div className="assistant-messages" aria-live="polite">
