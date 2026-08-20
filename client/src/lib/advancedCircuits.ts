@@ -27,6 +27,13 @@ export type MultiplierResult = {
   carries: [Bit, Bit];
 };
 
+export type ThreeBitMultiplierResult = {
+  product: [Bit, Bit, Bit, Bit, Bit, Bit, Bit];
+  partialProducts: [Bit, Bit, Bit, Bit, Bit, Bit, Bit, Bit, Bit];
+  adderSums: [Bit, Bit, Bit, Bit, Bit, Bit, Bit, Bit];
+  adderCarries: [Bit, Bit, Bit, Bit, Bit, Bit, Bit, Bit];
+};
+
 export type TruthRow = {
   inputs: Bit[];
   outputs: Bit[];
@@ -71,6 +78,43 @@ export function multiplyTwoBitNumbers(a1: Bit, a0: Bit, b1: Bit, b0: Bit): Multi
   };
 }
 
+export function multiplyThreeBitNumbers(
+  a2: Bit,
+  a1: Bit,
+  a0: Bit,
+  b2: Bit,
+  b1: Bit,
+  b0: Bit,
+): ThreeBitMultiplierResult {
+  const partialProducts = [
+    bit(a0 & b0),
+    bit(a1 & b0),
+    bit(a2 & b0),
+    bit(a0 & b1),
+    bit(a1 & b1),
+    bit(a2 & b1),
+    bit(a0 & b2),
+    bit(a1 & b2),
+    bit(a2 & b2),
+  ] as ThreeBitMultiplierResult["partialProducts"];
+  const [p00, p10, p20, p01, p11, p21, p02, p12, p22] = partialProducts;
+  const stage1 = halfAdder(p10, p01);
+  const stage2 = fullAdder(p20, p11, p02);
+  const stage3 = halfAdder(stage2.sum, stage1.carry);
+  const stage4 = fullAdder(p21, p12, stage2.carry);
+  const stage5 = halfAdder(stage4.sum, stage3.carry);
+  const stage6 = halfAdder(p22, stage4.carry);
+  const stage7 = halfAdder(stage6.sum, stage5.carry);
+  const stage8 = halfAdder(stage6.carry, stage7.carry);
+  const product: ThreeBitMultiplierResult["product"] = [stage8.carry, stage8.sum, stage7.sum, stage5.sum, stage3.sum, stage1.sum, p00];
+  return {
+    product,
+    partialProducts,
+    adderSums: [stage1.sum, stage2.sum, stage3.sum, stage4.sum, stage5.sum, stage6.sum, stage7.sum, stage8.sum],
+    adderCarries: [stage1.carry, stage2.carry, stage3.carry, stage4.carry, stage5.carry, stage6.carry, stage7.carry, stage8.carry],
+  };
+}
+
 const rows = (inputCount: number, output: (inputs: Bit[]) => Bit[]): TruthRow[] =>
   Array.from({ length: 2 ** inputCount }, (_, index) => {
     const inputs = Array.from({ length: inputCount }, (_, bitIndex) => bit((index >> (inputCount - bitIndex - 1)) & 1));
@@ -99,6 +143,11 @@ export const fullSubtractorTruthTable = rows(3, ([a, b, bin]) => {
 
 export const multiplierTruthTable = rows(4, ([a1, a0, b1, b0]) => {
   const result = multiplyTwoBitNumbers(a1, a0, b1, b0);
+  return result.product;
+});
+
+export const threeBitMultiplierTruthTable = rows(6, ([a2, a1, a0, b2, b1, b0]) => {
+  const result = multiplyThreeBitNumbers(a2, a1, a0, b2, b1, b0);
   return result.product;
 });
 

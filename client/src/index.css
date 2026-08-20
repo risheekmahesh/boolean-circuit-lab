@@ -789,3 +789,65 @@ footer { font-size: 11px; }
 .dark .module-terminal.terminal-source-b .module-terminal-key, .dark .module-terminal.terminal-source-b .module-terminal-value { fill: #ffd27a; }
 .dark .module-terminal.terminal-source-c rect { stroke: #06B6D4; }
 .dark .module-terminal.terminal-source-c .module-terminal-key, .dark .module-terminal.terminal-source-c .module-terminal-value { fill: #7de7f7; }
+
+/* Scoped signal map for textbook arithmetic and multiplier schematics. */
+.module-wire.wire-a0 { stroke: #2563EB; }
+.module-wire.wire-a1 { stroke: #06B6D4; }
+.module-wire.wire-a2 { stroke: #16A34A; }
+.module-wire.wire-b0 { stroke: #F59E0B; }
+.module-wire.wire-b1 { stroke: #EC4899; }
+.module-wire.wire-b2 { stroke: #8B5CF6; }
+.module-junction.junction-a0 { fill: #2563EB; }
+.module-junction.junction-a1 { fill: #06B6D4; }
+.module-junction.junction-a2 { fill: #16A34A; }
+.module-junction.junction-b0 { fill: #F59E0B; }
+.module-junction.junction-b1 { fill: #EC4899; }
+.module-junction.junction-b2 { fill: #8B5CF6; }
+.module-terminal.terminal-source-a0 rect { stroke: #2563EB; }
+.module-terminal.terminal-source-a0 .module-terminal-key, .module-terminal.terminal-source-a0 .module-terminal-value { fill: #2563EB; }
+.module-terminal.terminal-source-a1 rect { stroke: #06B6D4; }
+.module-terminal.terminal-source-a1 .module-terminal-key, .module-terminal.terminal-source-a1 .module-terminal-value { fill: #06B6D4; }
+.module-terminal.terminal-source-a2 rect { stroke: #16A34A; }
+.module-terminal.terminal-source-a2 .module-terminal-key, .module-terminal.terminal-source-a2 .module-terminal-value { fill: #16A34A; }
+.module-terminal.terminal-source-b0 rect { stroke: #F59E0B; }
+.module-terminal.terminal-source-b0 .module-terminal-key, .module-terminal.terminal-source-b0 .module-terminal-value { fill: #F59E0B; }
+.module-terminal.terminal-source-b1 rect { stroke: #EC4899; }
+.module-terminal.terminal-source-b1 .module-terminal-key, .module-terminal.terminal-source-b1 .module-terminal-value { fill: #EC4899; }
+.module-terminal.terminal-source-b2 rect { stroke: #8B5CF6; }
+.module-terminal.terminal-source-b2 .module-terminal-key, .module-terminal.terminal-source-b2 .module-terminal-value { fill: #8B5CF6; }
+.dark .module-wire.wire-a0 { stroke: #79A7FF; }
+.dark .module-wire.wire-a1 { stroke: #7DE7F7; }
+.dark .module-wire.wire-a2 { stroke: #7BE495; }
+.dark .module-wire.wire-b0 { stroke: #FFD27A; }
+.dark .module-wire.wire-b1 { stroke: #FF8AC0; }
+.dark .module-wire.wire-b2 { stroke: #C4A5FF; }
+.dark .module-junction.junction-a0 { fill: #79A7FF; }
+.dark .module-junction.junction-a1 { fill: #7DE7F7; }
+.dark .module-junction.junction-a2 { fill: #7BE495; }
+.dark .module-junction.junction-b0 { fill: #FFD27A; }
+.dark .module-junction.junction-b1 { fill: #FF8AC0; }
+.dark .module-junction.junction-b2 { fill: #C4A5FF; }
+.dark .module-terminal.terminal-source-a0 rect { stroke: #79A7FF; }
+.dark .module-terminal.terminal-source-a0 .module-terminal-key, .dark .module-terminal.terminal-source-a0 .module-terminal-value { fill: #79A7FF; }
+.dark .module-terminal.terminal-source-a1 rect { stroke: #7DE7F7; }
+.dark .module-terminal.terminal-source-a1 .module-terminal-key, .dark .module-terminal.terminal-source-a1 .module-terminal-value { fill: #7DE7F7; }
+.dark .module-terminal.terminal-source-a2 rect { stroke: #7BE495; }
+.dark .module-terminal.terminal-source-a2 .module-terminal-key, .dark .module-terminal.terminal-source-a2 .module-terminal-value { fill: #7BE495; }
+.dark .module-terminal.terminal-source-b0 rect { stroke: #FFD27A; }
+.dark .module-terminal.terminal-source-b0 .module-terminal-key, .dark .module-terminal.terminal-source-b0 .module-terminal-value { fill: #FFD27A; }
+.dark .module-terminal.terminal-source-b1 rect { stroke: #FF8AC0; }
+.dark .module-terminal.terminal-source-b1 .module-terminal-key, .dark .module-terminal.terminal-source-b1 .module-terminal-value { fill: #FF8AC0; }
+.dark .module-terminal.terminal-source-b2 rect { stroke: #C4A5FF; }
+.dark .module-terminal.terminal-source-b2 .module-terminal-key, .dark .module-terminal.terminal-source-b2 .module-terminal-value { fill: #C4A5FF; }
+.modules-page .module-circuit-canvas svg { max-width: none; }
+@media (max-width: 900px) {
+  .modules-page .module-circuit-canvas svg { min-width: 900px; }
+}
+@media (max-width: 640px) {
+  .modules-page .module-circuit-canvas svg { min-width: 840px; }
+}
+
+/* 3-bit truth table needs a readable horizontal scroll without changing other tables. */
+#multiplier-3bit .module-table-wrap { overflow-x: auto; }
+#multiplier-3bit .module-table { min-width: 720px; }
+#multiplier-3bit .simulator-controls > div:first-of-type { flex-wrap: wrap; }
