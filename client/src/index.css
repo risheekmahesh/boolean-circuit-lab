@@ -851,3 +851,42 @@ footer { font-size: 11px; }
 #multiplier-3bit .module-table-wrap { overflow-x: auto; }
 #multiplier-3bit .module-table { min-width: 720px; }
 #multiplier-3bit .simulator-controls > div:first-of-type { flex-wrap: wrap; }
+
+/* Textbook-aligned gate diagram polish for the standard, NAND-only, and NOR-only implementations. */
+.diagram-stage-labels text { fill: #718480; font: 700 10px "DM Mono", monospace; letter-spacing: .14em; }
+.diagram-wire { stroke-width: 2.25; stroke-linecap: square; stroke-linejoin: miter; }
+.diagram-wire.wire-trunk { opacity: .96; }
+.logic-gate { stroke-width: 1.8; stroke-linejoin: round; }
+.gate-bubble { stroke-width: 1.8; }
+.junction-dot { r: 4.5; stroke-width: 1.6; }
+.input-terminal-a, .terminal-stub-a { stroke: #2563EB; }
+.input-terminal-b, .terminal-stub-b { stroke: #F59E0B; }
+.input-terminal-c, .terminal-stub-c { stroke: #06B6D4; }
+.diagram-wire.wire-source-a, .junction-dot.wire-source-a { stroke: #2563EB; }
+.diagram-wire.wire-source-b, .junction-dot.wire-source-b { stroke: #F59E0B; }
+.diagram-wire.wire-source-c, .junction-dot.wire-source-c { stroke: #06B6D4; }
+.diagram-wire.wire-source-derived, .junction-dot.wire-source-derived { stroke: #14B8A6; }
+.junction-dot.wire-source-a { fill: #2563EB; }
+.junction-dot.wire-source-b { fill: #F59E0B; }
+.junction-dot.wire-source-c { fill: #06B6D4; }
+.junction-dot.wire-source-derived { fill: #14B8A6; }
+.diagram-wire-legend .wire-source-a { color: #2563EB; }
+.diagram-wire-legend .wire-source-b { color: #F59E0B; }
+.diagram-wire-legend .wire-source-c { color: #06B6D4; }
+.diagram-wire-legend .wire-source-derived { color: #14B8A6; }
+.dark .diagram-stage-labels text { fill: #a7bfba; }
+.dark .input-terminal-a, .dark .terminal-stub-a { stroke: #79A7FF; }
+.dark .input-terminal-b, .dark .terminal-stub-b { stroke: #FFD27A; }
+.dark .input-terminal-c, .dark .terminal-stub-c { stroke: #7DE7F7; }
+.dark .diagram-wire.wire-source-a, .dark .junction-dot.wire-source-a { stroke: #79A7FF; }
+.dark .diagram-wire.wire-source-b, .dark .junction-dot.wire-source-b { stroke: #FFD27A; }
+.dark .diagram-wire.wire-source-c, .dark .junction-dot.wire-source-c { stroke: #7DE7F7; }
+.dark .diagram-wire.wire-source-derived, .dark .junction-dot.wire-source-derived { stroke: #4BE1BD; }
+.dark .junction-dot.wire-source-a { fill: #79A7FF; }
+.dark .junction-dot.wire-source-b { fill: #FFD27A; }
+.dark .junction-dot.wire-source-c { fill: #7DE7F7; }
+.dark .junction-dot.wire-source-derived { fill: #4BE1BD; }
+.dark .diagram-wire-legend .wire-source-a { color: #79A7FF; }
+.dark .diagram-wire-legend .wire-source-b { color: #FFD27A; }
+.dark .diagram-wire-legend .wire-source-c { color: #7DE7F7; }
+.dark .diagram-wire-legend .wire-source-derived { color: #4BE1BD; }

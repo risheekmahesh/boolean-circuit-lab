@@ -98,10 +98,10 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
       });
       return { width: Math.max(720, nextX - 16), height, position };
     }
-    const height = Math.max(270, 80 + Math.max(maxRows, 3) * 58);
+    const height = Math.max(320, 110 + Math.max(maxRows, 3) * 72);
     const columnX = new Map<number, number>();
     let nextX = 24;
-    const stageGap = 112;
+    const stageGap = graph.title === "NAND-only" || graph.title === "NOR-only" ? 154 : 132;
     for (let column = 0; column <= maxColumn; column += 1) {
       columnX.set(column, nextX);
       const widest = Math.max(...(grouped.get(column) ?? []).map((item) => nodeDimensions(item.gate).width), 88);
@@ -110,7 +110,7 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
     const position = new Map<string, { x: number; y: number }>();
     const centerY = height / 2;
     const inputNodes = grouped.get(0) ?? [];
-    const inputGap = inputNodes.length > 1 ? Math.min(64, (height - 72) / (inputNodes.length - 1)) : 0;
+    const inputGap = inputNodes.length > 1 ? Math.min(78, (height - 86) / (inputNodes.length - 1)) : 0;
     const inputTop = (height - ((inputNodes.length - 1) * inputGap) - 36) / 2;
     inputNodes.forEach((current, index) => position.set(current.id, { x: columnX.get(0) ?? 24, y: inputTop + index * inputGap }));
     for (let column = 1; column <= maxColumn; column += 1) {
@@ -165,7 +165,7 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
     const sourcePosition = layout.position.get(sourceId);
     if (!source || !sourcePosition) return;
     const sourceSize = nodeDimensions(source.gate);
-    const sourceOutputOffset = source.gate === "INPUT" ? sourceSize.width + 18 : source.gate === "NOT" ? sourceSize.width - 12 : ["NAND", "NOR"].includes(source.gate) ? sourceSize.width - 4 : ["AND", "OR"].includes(source.gate) ? sourceSize.width - 8 : sourceSize.width;
+    const sourceOutputOffset = source.gate === "INPUT" ? sourceSize.width + 18 : source.gate === "NOT" ? sourceSize.width - 1 : ["NAND", "NOR"].includes(source.gate) ? sourceSize.width : ["AND", "OR"].includes(source.gate) ? sourceSize.width - 8 : sourceSize.width;
     const startX = sourcePosition.x + sourceOutputOffset;
     const startY = sourcePosition.y + sourceSize.height / 2;
     if (connections.length > 1) {
@@ -176,7 +176,7 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
         const targetPosition = layout.position.get(target.id);
         if (!targetPosition) return;
         const targetSize = nodeDimensions(target.gate);
-        const targetInputOffset = target.gate === "NOT" ? 10 : ["NAND", "NOR"].includes(target.gate) ? 6 : ["AND", "OR"].includes(target.gate) ? 8 : 0;
+        const targetInputOffset = target.gate === "NOT" ? 10 : ["NAND", "NOR"].includes(target.gate) ? 8 : ["AND", "OR"].includes(target.gate) ? 8 : 0;
         const endX = targetPosition.x + targetInputOffset;
         const inputIndex = target.inputs.indexOf(targetSourceId);
         const endY = portY(targetPosition, targetSize, target.gate, inputIndex, target.inputs.length);
@@ -188,7 +188,7 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
     const targetPosition = layout.position.get(onlyConnection.target.id);
     if (!targetPosition) return;
     const targetSize = nodeDimensions(onlyConnection.target.gate);
-    const targetInputOffset = onlyConnection.target.gate === "NOT" ? 10 : ["NAND", "NOR"].includes(onlyConnection.target.gate) ? 6 : ["AND", "OR"].includes(onlyConnection.target.gate) ? 8 : 0;
+    const targetInputOffset = onlyConnection.target.gate === "NOT" ? 10 : ["NAND", "NOR"].includes(onlyConnection.target.gate) ? 8 : ["AND", "OR"].includes(onlyConnection.target.gate) ? 8 : 0;
     const endX = targetPosition.x + targetInputOffset;
     const inputIndex = onlyConnection.target.inputs.indexOf(sourceId);
     const endY = portY(targetPosition, targetSize, onlyConnection.target.gate, inputIndex, onlyConnection.target.inputs.length);
@@ -199,16 +199,17 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
   return (
     <div className="diagram-frame" aria-label={`${graph.title} graphical circuit diagram`}>
       {(graph.title === "NAND-only" || graph.title === "NOR-only") && <div className="diagram-wire-legend" aria-label="Signal wire legend"><span className="wire-legend-item wire-source-a"><i />A</span><span className="wire-legend-item wire-source-b"><i />B</span><span className="wire-legend-item wire-source-c"><i />C</span><span className="wire-legend-item wire-source-derived"><i />Derived</span></div>}
-      <svg viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" preserveAspectRatio="xMinYMin meet">
+      <svg viewBox={`0 0 ${layout.width} ${layout.height}`} role="img" aria-label={`${graph.title} circuit diagram with continuous orthogonal signal routing`} preserveAspectRatio="xMinYMin meet">
         <defs>
           <pattern id={`draft-grid-${idSuffix}`} width="12" height="12" patternUnits="userSpaceOnUse">
             <path d="M 12 0 L 0 0 0 12" fill="none" stroke="rgba(25, 48, 50, 0.08)" strokeWidth="0.65" />
           </pattern>
           <marker id={`signal-arrow-${idSuffix}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="#007C74" />
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
           </marker>
         </defs>
         <rect x="0" y="0" width={layout.width} height={layout.height} fill={`url(#draft-grid-${idSuffix})`} />
+        {(graph.title === "NAND-only" || graph.title === "NOR-only" || graph.title === "AND · OR · NOT") && <g className="diagram-stage-labels" aria-hidden="true"><text x="28" y="18">INPUTS</text><text x={Math.max(170, layout.width / 2 - 80)} y="18">GATE NETWORK</text><text x={layout.width - 116} y="18">OUTPUT</text></g>}
         {wireRoutes.map((route) => <path key={route.id} className={`diagram-wire wire-source-${wireSourceClass(route.sourceId)} ${route.arrow ? "has-arrow" : "wire-trunk"}`} d={route.path} markerEnd={route.arrow ? `url(#signal-arrow-${idSuffix})` : undefined} />)}
         {graph.nodes.map((current) => {
           const point = layout.position.get(current.id)!;
@@ -218,7 +219,7 @@ function CircuitDiagram({ graph }: { graph: CircuitGraph }) {
           const bubbleX = current.gate === "NOT" ? size.width - 17 : size.width - 7;
           return (
             <g key={current.id} transform={`translate(${point.x}, ${point.y})`}>
-              {current.gate === "INPUT" && <><rect className="input-terminal" width={size.width} height={size.height} rx="17" /><text className="terminal-label" x="22" y="23" textAnchor="middle">{current.label}</text><path className="terminal-stub" d={`M ${size.width} ${size.height / 2} H ${size.width + 18}`} /></>}
+              {current.gate === "INPUT" && <><rect className={`input-terminal input-terminal-${current.label.toLowerCase()}`} width={size.width} height={size.height} rx="17" /><text className="terminal-label" x="22" y="23" textAnchor="middle">{current.label}</text><path className={`terminal-stub terminal-stub-${current.label.toLowerCase()}`} d={`M ${size.width} ${size.height / 2} H ${size.width + 18}`} /></>}
               {current.gate === "OUTPUT" && <><path className="output-stub" d={`M 0 ${size.height / 2} H 12`} /><rect className="output-terminal" x="12" y="3" width={size.width - 12} height={size.height - 6} rx="12" /><text className="output-label" x={size.width / 2 + 6} y={size.height / 2 + 5} textAnchor="middle">{current.label}</text></>}
               {current.gate === "CONST" && <><rect className="const-terminal" width={size.width} height={size.height} rx="10" /><text className="const-label" x={size.width / 2} y={size.height / 2 + 4} textAnchor="middle">CONST {current.label}</text></>}
               {isLogicGate && <><path className={`logic-gate gate-shape-${current.gate.toLowerCase()}`} d={gatePath(current.gate, size.width, size.height)} /><text className="gate-name" x={current.gate === "NOT" ? 34 : 48} y={size.height / 2 + 4} textAnchor="middle">{current.label}</text>{bubble && <circle className="gate-bubble" cx={bubbleX} cy={size.height / 2} r="5" />}</>}
