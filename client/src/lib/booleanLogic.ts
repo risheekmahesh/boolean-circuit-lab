@@ -60,7 +60,9 @@ type Ast =
   | { kind: "constant"; value: boolean }
   | { kind: "not"; value: Ast }
   | { kind: "and"; left: Ast; right: Ast }
-  | { kind: "or"; left: Ast; right: Ast };
+  | { kind: "or"; left: Ast; right: Ast }
+  | { kind: "xor"; left: Ast; right: Ast }
+  | { kind: "xnor"; left: Ast; right: Ast };
 
 type Implicant = { pattern: string; covered: Set<number> };
 
@@ -84,13 +86,15 @@ export function assignmentsFor(variables: string[]) {
   });
 }
 
+const WORD_OPERATORS = new Set(["AND", "OR", "NOT", "XOR", "XNOR"]);
+
 function isIdentifier(token: string) {
-  return /^[A-Za-z][A-Za-z0-9_]*$/.test(token);
+  return /^[A-Za-z][A-Za-z0-9_]*$/.test(token) && !WORD_OPERATORS.has(token.toUpperCase());
 }
 
 function tokenize(input: string) {
   const tokens: string[] = [];
-  const matcher = /\s*([A-Z]|[a-z][A-Za-z0-9_]*|[A-Z][0-9_][A-Za-z0-9_]*|[01]|[()+*·&|!~'])\s*/g;
+  const matcher = /\s*(AND|XNOR|XOR|OR|NOT|[A-Za-z][A-Za-z0-9_]*|[01]|[()+*·&|^!~'])\s*/g;
   let index = 0;
   while (index < input.length) {
     matcher.lastIndex = index;
@@ -98,12 +102,18 @@ function tokenize(input: string) {
     if (!match || match.index !== index) {
       throw new Error(`Unexpected character near “${input.slice(index, index + 8)}”.`);
     }
-    tokens.push(match[1]);
+    const raw = match[1];
+    const normalized = WORD_OPERATORS.has(raw.toUpperCase()) ? raw.toUpperCase() : raw;
+    if (/^[A-F]{2,}$/.test(normalized)) {
+      normalized.split("").forEach((token) => tokens.push(token));
+    } else {
+      tokens.push(normalized);
+    }
     index = matcher.lastIndex;
   }
 
   const canEnd = (token: string) => isIdentifier(token) || token === "0" || token === "1" || token === ")" || token === "'";
-  const canStart = (token: string) => isIdentifier(token) || token === "0" || token === "1" || token === "(" || token === "!" || token === "~";
+  const canStart = (token: string) => isIdentifier(token) || token === "0" || token === "1" || token === "(" || token === "!" || token === "~" || token === "NOT";
   const withImplicitAnd: string[] = [];
   tokens.forEach((token, position) => {
     if (position > 0 && canEnd(tokens[position - 1]) && canStart(token)) {
@@ -137,17 +147,27 @@ class ExpressionParser {
   }
 
   private parseOr(): Ast {
-    let left = this.parseAnd();
-    while (this.peek() === "+" || this.peek() === "|") {
+    let left = this.parseXor();
+    while (this.peek() === "+" || this.peek() === "|" || this.peek() === "OR") {
       this.take();
-      left = { kind: "or", left, right: this.parseAnd() };
+      left = { kind: "or", left, right: this.parseXor() };
+    }
+    return left;
+  }
+
+  private parseXor(): Ast {
+    let left = this.parseAnd();
+    while (this.peek() === "^" || this.peek() === "XOR" || this.peek() === "XNOR") {
+      const operator = this.take();
+      const right = this.parseAnd();
+      left = { kind: operator === "XNOR" ? "xnor" : "xor", left, right };
     }
     return left;
   }
 
   private parseAnd(): Ast {
     let left = this.parseUnary();
-    while (this.peek() === "*" || this.peek() === "·" || this.peek() === "&") {
+    while (this.peek() === "*" || this.peek() === "·" || this.peek() === "&" || this.peek() === "AND") {
       this.take();
       left = { kind: "and", left, right: this.parseUnary() };
     }
@@ -155,7 +175,7 @@ class ExpressionParser {
   }
 
   private parseUnary(): Ast {
-    if (this.peek() === "!" || this.peek() === "~") {
+    if (this.peek() === "!" || this.peek() === "~" || this.peek() === "NOT") {
       this.take();
       return { kind: "not", value: this.parseUnary() };
     }
@@ -192,13 +212,17 @@ function evaluateAst(ast: Ast, assignment: Record<string, boolean>): boolean {
       return evaluateAst(ast.left, assignment) && evaluateAst(ast.right, assignment);
     case "or":
       return evaluateAst(ast.left, assignment) || evaluateAst(ast.right, assignment);
+    case "xor":
+      return evaluateAst(ast.left, assignment) !== evaluateAst(ast.right, assignment);
+    case "xnor":
+      return evaluateAst(ast.left, assignment) === evaluateAst(ast.right, assignment);
   }
 }
 
 function collectVariables(ast: Ast, target = new Set<string>()) {
   if (ast.kind === "variable") target.add(ast.name);
   if (ast.kind === "not") collectVariables(ast.value, target);
-  if (ast.kind === "and" || ast.kind === "or") {
+  if (ast.kind === "and" || ast.kind === "or" || ast.kind === "xor" || ast.kind === "xnor") {
     collectVariables(ast.left, target);
     collectVariables(ast.right, target);
   }

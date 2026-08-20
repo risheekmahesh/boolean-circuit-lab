@@ -3,7 +3,7 @@
  * drafting labels, monospaced Boolean notation, and a left-to-right evidence flow.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   ArrowRight,
@@ -19,7 +19,9 @@ import {
   Layers3,
   Play,
   RotateCcw,
+  Share2,
   Sigma,
+  Sparkles,
   TableProperties,
   XCircle,
 } from "lucide-react";
@@ -38,11 +40,19 @@ import ThemeToggle from "@/components/ThemeToggle";
 
 type InputMode = "expression" | "terms" | "truth";
 type TermKind = "minterms" | "maxterms";
+type TruthCell = "0" | "1" | "X";
+type Preset = { label: string; helper: string; expression: string };
 
 const HERO_ASSET = "/manus-storage/circuit-atlas-hero_7678a108.jpg";
 const DETAIL_ASSET = "/manus-storage/circuit-atlas-diagram-detail_647595c6.jpg";
 const DEFAULT_EXPRESSION = "A'B + AB' + AC";
-const DEFAULT_TRUTH = [false, true, true, false, true, true, true, true];
+const DEFAULT_TRUTH: TruthCell[] = ["0", "1", "1", "0", "1", "1", "1", "1"];
+const PRESETS: Preset[] = [
+  { label: "Majority voter", helper: "3-variable", expression: "AB + AC + BC" },
+  { label: "Prime detector", helper: "4-variable", expression: "A'B'CD + A'BC'D + AB'CD' + ABC'D' + ABCD" },
+  { label: "3-input parity", helper: "XOR", expression: "A XOR B XOR C" },
+  { label: "Security alarm", helper: "word logic", expression: "DOOR AND IGNITION OR MOTION AND NIGHT" },
+];
 
 function makeInitialAnalysis() {
   const parsed = parseBooleanExpression(DEFAULT_EXPRESSION);
@@ -264,18 +274,26 @@ function InputModeTab({ active, label, helper, icon, onClick }: { active: boolea
 function VariableStepper({ value, onChange }: { value: number; onChange: (value: number) => void }) {
   return (
     <div className="stepper-control" aria-label="Input variable count">
-      <button type="button" onClick={() => onChange(Math.max(1, value - 1))} aria-label="Decrease variables">−</button>
+      <button type="button" onClick={() => onChange(Math.max(2, value - 1))} aria-label="Decrease variables">−</button>
       <strong>{value}</strong><span>variables</span>
       <button type="button" onClick={() => onChange(Math.min(6, value + 1))} aria-label="Increase variables">+</button>
     </div>
   );
 }
 
+function VariableRenameControls({ names, onChange }: { names: string[]; onChange: (index: number, value: string) => void }) {
+  return <div className="variable-rename-controls" aria-label="Rename Boolean variables">
+    <span className="field-label">Variable labels</span>
+    <div>{names.map((name, index) => <label key={`${name}-${index}`}><span>{index + 1}</span><input value={name} maxLength={3} aria-label={`Rename variable ${index + 1}`} onChange={(event) => onChange(index, event.target.value)} /></label>)}</div>
+    <small>Use up to 3 letters or numbers; labels propagate through the table and generated expressions.</small>
+  </div>;
+}
+
 function grayCodes(bits: number) {
   return Array.from({ length: 2 ** bits }, (_, value) => value ^ (value >> 1));
 }
 
-function KMap({ analysis }: { analysis: AnalysisResult }) {
+function KMap({ analysis, onCellChange }: { analysis: AnalysisResult; onCellChange?: (index: number) => void }) {
   const rowBits = Math.floor(analysis.variables.length / 2);
   const columnBits = analysis.variables.length - rowBits;
   const rowCodes = grayCodes(rowBits);
@@ -306,7 +324,7 @@ function KMap({ analysis }: { analysis: AnalysisResult }) {
                 const index = (rowCode << columnBits) | columnCode;
                 const row = rowsByIndex.get(index)!;
                 const state = row.dontCare ? "X" : row.original ? "1" : "0";
-                return <div className={`kmap-cell ${row.dontCare ? "is-dont-care" : row.original ? "is-high" : "is-low"}`} key={`cell-${index}`} title={`M${index}: ${row.dontCare ? "don't-care" : row.original ? "1" : "0"}`}>{state}</div>;
+                return <div className={`kmap-cell ${row.dontCare ? "is-dont-care" : row.original ? "is-high" : "is-low"}`} key={`cell-${index}`} title={`M${index}: ${row.dontCare ? "don't-care" : row.original ? "1" : "0"}`} role={onCellChange ? "button" : undefined} tabIndex={onCellChange ? 0 : undefined} onClick={() => onCellChange?.(index)} onKeyDown={(event) => { if (onCellChange && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); onCellChange(index); } }}>{state}</div>;
               }),
             ];
           })}
@@ -320,19 +338,23 @@ function KMap({ analysis }: { analysis: AnalysisResult }) {
 export type AnalyzerSection = "all" | "truth" | "kmap" | "gates" | "transform" | "verification";
 
 export default function Home({ embedded = false, visibleSection = "all" }: { embedded?: boolean; visibleSection?: AnalyzerSection }) {
-  const [mode, setMode] = useState<InputMode>("expression");
-  const initialExpression = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("expression") || DEFAULT_EXPRESSION : DEFAULT_EXPRESSION;
-  const [expression, setExpression] = useState(initialExpression);
-  const [termKind, setTermKind] = useState<TermKind>("minterms");
-  const [termInput, setTermInput] = useState("1, 2, 4, 5, 6, 7");
-  const [dontCareInput, setDontCareInput] = useState("");
-  const [variableCount, setVariableCount] = useState(3);
-  const [truthValues, setTruthValues] = useState(DEFAULT_TRUTH);
+  const query = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const queryVariableCount = Math.min(6, Math.max(2, Number(query.get("variables")) || 3));
+  const queryTruth = (query.get("truth") || "").split("").filter((cell): cell is TruthCell => cell === "0" || cell === "1" || cell === "X");
+  const [mode, setMode] = useState<InputMode>((["expression", "terms", "truth"].includes(query.get("mode") || "") ? query.get("mode") : "expression") as InputMode);
+  const [expression, setExpression] = useState(query.get("expression") || DEFAULT_EXPRESSION);
+  const [termKind, setTermKind] = useState<TermKind>(query.get("termKind") === "maxterms" ? "maxterms" : "minterms");
+  const [termInput, setTermInput] = useState(query.get("terms") || "1, 2, 4, 5, 6, 7");
+  const [dontCareInput, setDontCareInput] = useState(query.get("dontCare") || "");
+  const [variableCount, setVariableCount] = useState(queryVariableCount);
+  const [variableNames, setVariableNames] = useState<string[]>(() => Array.from({ length: queryVariableCount }, (_, index) => query.get(`var${index}`) || createVariables(queryVariableCount)[index]));
+  const [truthValues, setTruthValues] = useState<TruthCell[]>(queryTruth.length === 2 ** queryVariableCount ? queryTruth : Array.from({ length: 2 ** queryVariableCount }, (_, index) => DEFAULT_TRUTH[index] ?? "0"));
   const [analysis, setAnalysis] = useState<AnalysisResult>(makeInitialAnalysis);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
 
-  const tableVariables = createVariables(variableCount);
+  const tableVariables = variableNames;
   const tableAssignments = useMemo(() => {
     return Array.from({ length: 2 ** variableCount }, (_, index) => {
       const assignment: Record<string, boolean> = {};
@@ -343,7 +365,13 @@ export default function Home({ embedded = false, visibleSection = "all" }: { emb
 
   const updateVariableCount = (nextCount: number) => {
     setVariableCount(nextCount);
-    setTruthValues((existing) => Array.from({ length: 2 ** nextCount }, (_, index) => existing[index] ?? false));
+    setVariableNames((existing) => Array.from({ length: nextCount }, (_, index) => existing[index] || createVariables(nextCount)[index]));
+    setTruthValues((existing) => Array.from({ length: 2 ** nextCount }, (_, index) => existing[index] ?? "0"));
+  };
+
+  const renameVariable = (index: number, value: string) => {
+    const clean = value.toUpperCase().replace(/[^A-Z0-9_]/g, "").slice(0, 3);
+    setVariableNames((existing) => existing.map((name, nameIndex) => nameIndex === index ? clean || name : name));
   };
 
   const handleAnalyze = () => {
@@ -362,10 +390,12 @@ export default function Home({ embedded = false, visibleSection = "all" }: { emb
         const values = valuesFromTerms(variableCount, selected, termKind);
         const notation = termKind === "minterms" ? `Σm(${selected.join(", ")})` : `ΠM(${selected.join(", ")})`;
         const source = dontCares.length ? `${notation}, d(${dontCares.join(", ")})` : notation;
-        next = analyzeFromValues(createVariables(variableCount), values, source, dontCares);
+        next = analyzeFromValues(tableVariables, values, source, dontCares);
       } else {
         const dontCares = parseDontCareList(dontCareInput, 2 ** variableCount);
-        next = analyzeFromValues(createVariables(variableCount), truthValues, "Truth table input", dontCares);
+        const requiredValues = truthValues.map((cell) => cell === "1");
+        const tableDontCares = Array.from(new Set([...dontCares, ...truthValues.flatMap((cell, index) => cell === "X" ? [index] : [])]));
+        next = analyzeFromValues(tableVariables, requiredValues, "Truth table input", tableDontCares);
       }
       setError("");
       setAnalysis(next);
@@ -378,6 +408,9 @@ export default function Home({ embedded = false, visibleSection = "all" }: { emb
     setMode("expression");
     setExpression(DEFAULT_EXPRESSION);
     setDontCareInput("");
+    setVariableCount(3);
+    setVariableNames(createVariables(3));
+    setTruthValues(DEFAULT_TRUTH);
     setError("");
     const parsed = parseBooleanExpression(DEFAULT_EXPRESSION);
     setAnalysis(analyzeFromValues(parsed.variables, parsed.values, DEFAULT_EXPRESSION));
@@ -388,6 +421,43 @@ export default function Home({ embedded = false, visibleSection = "all" }: { emb
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1400);
   };
+
+  const shareState = async () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("mode", mode);
+    url.searchParams.set("expression", expression);
+    url.searchParams.set("termKind", termKind);
+    url.searchParams.set("terms", termInput);
+    url.searchParams.set("dontCare", dontCareInput);
+    url.searchParams.set("variables", String(variableCount));
+    url.searchParams.set("truth", truthValues.join(""));
+    variableNames.forEach((name, index) => url.searchParams.set(`var${index}`, name));
+    await navigator.clipboard?.writeText(url.toString());
+    setShared(true);
+    window.setTimeout(() => setShared(false), 1800);
+  };
+
+  useEffect(() => {
+    if (mode !== "truth") return;
+    const selectedDontCares = truthValues.flatMap((cell, index) => cell === "X" ? [index] : []);
+    setDontCareInput(selectedDontCares.length ? selectedDontCares.join(", ") : "");
+  }, [mode, truthValues]);
+
+  const updateKMapCell = (index: number) => {
+    const currentCells = analysis.verificationRows.map((row) => row.dontCare ? "X" : row.original ? "1" : "0") as TruthCell[];
+    const nextCells = currentCells.map((cell, cellIndex) => cellIndex === index ? cell === "0" ? "1" : cell === "1" ? "X" : "0" : cell);
+    const nextDontCares = nextCells.flatMap((cell, cellIndex) => cell === "X" ? [cellIndex] : []);
+    setMode("truth");
+    setVariableCount(analysis.variables.length);
+    setVariableNames(analysis.variables);
+    setTruthValues(nextCells);
+    setDontCareInput(nextDontCares.join(", "));
+    setAnalysis(analyzeFromValues(analysis.variables, nextCells.map((cell) => cell === "1"), "Truth table input", nextDontCares));
+  };
+
+  useEffect(() => {
+    if (query.get("mode")) window.setTimeout(handleAnalyze, 0);
+  }, []);
 
   const showSection = (section: Exclude<AnalyzerSection, "all">) => visibleSection === "all" || visibleSection === section;
 
@@ -434,18 +504,20 @@ export default function Home({ embedded = false, visibleSection = "all" }: { emb
             <div className="mode-tabs" role="tablist" aria-label="Input mode">
               <InputModeTab active={mode === "expression"} label="Expression" helper="A'B + AC" icon={<FunctionSquare size={17} />} onClick={() => setMode("expression")} />
               <InputModeTab active={mode === "terms"} label="Terms" helper="Σm / ΠM" icon={<Sigma size={18} />} onClick={() => setMode("terms")} />
-              <InputModeTab active={mode === "truth"} label="Truth table" helper="state by state" icon={<TableProperties size={17} />} onClick={() => setMode("truth")} />
+              <InputModeTab active={mode === "truth"} label="Truth table" helper="0 → 1 → X" icon={<TableProperties size={17} />} onClick={() => setMode("truth")} />
             </div>
+            <div className="preset-strip"><span className="field-label">Quick starts</span><div>{PRESETS.map((preset) => <button type="button" key={preset.label} onClick={() => { setMode("expression"); setExpression(preset.expression); setError(""); }}>{preset.label}<small>{preset.helper}</small></button>)}</div></div>
 
             <div className="input-stage">
               {mode === "expression" && <>
                 <label className="field-label" htmlFor="expression-input">Boolean expression</label>
                 <textarea id="expression-input" value={expression} onChange={(event) => setExpression(event.target.value)} spellCheck={false} placeholder="A'B + AC" />
-                <div className="syntax-help"><code>'</code> / <code>!</code> NOT <span>·</span> <code>*</code> AND <span>+</span> OR <span>Parentheses supported</span></div>
+                <div className="syntax-help"><code>'</code> / <code>!</code> / <code>~</code> NOT <span>·</span> <code>*</code> / <code>AND</code> <span>+</span> / <code>OR</code> <span>^</span> / <code>XOR</code> / <code>XNOR</code> <span>Parentheses supported</span></div>
               </>}
 
               {mode === "terms" && <>
                 <div className="field-row"><label className="field-label">Function notation</label><VariableStepper value={variableCount} onChange={updateVariableCount} /></div>
+                <VariableRenameControls names={tableVariables} onChange={renameVariable} />
                 <div className="segmented-control" aria-label="Term notation type">
                   <button type="button" className={termKind === "minterms" ? "selected" : ""} onClick={() => setTermKind("minterms")}>Σ minterms</button>
                   <button type="button" className={termKind === "maxterms" ? "selected" : ""} onClick={() => setTermKind("maxterms")}>Π maxterms</button>
@@ -456,13 +528,14 @@ export default function Home({ embedded = false, visibleSection = "all" }: { emb
               </>}
 
               {mode === "truth" && <>
-                <div className="field-row"><div><label className="field-label">Truth table states</label><p className="field-hint">Tap an output to switch it.</p></div><VariableStepper value={variableCount} onChange={updateVariableCount} /></div>
+                <div className="field-row"><div><label className="field-label">Truth table states</label><p className="field-hint">Tap each output to cycle 0 → 1 → X.</p></div><VariableStepper value={variableCount} onChange={updateVariableCount} /></div>
+                <VariableRenameControls names={tableVariables} onChange={renameVariable} />
                 <div className="truth-input-table">
                   <div className="truth-head" style={{ gridTemplateColumns: `repeat(${variableCount + 1}, 1fr)` }}>{tableVariables.map((variable) => <span key={variable}>{variable}</span>)}<span>F</span></div>
                   <div className="truth-scroll">
                     {tableAssignments.map((assignment, index) => <div className="truth-input-row" style={{ gridTemplateColumns: `repeat(${variableCount + 1}, 1fr)` }} key={index}>
                       {tableVariables.map((variable) => <span key={variable}>{assignment[variable] ? "1" : "0"}</span>)}
-                      <button type="button" className={truthValues[index] ? "truth-output on" : "truth-output"} onClick={() => setTruthValues((current) => current.map((value, row) => row === index ? !value : value))}>{truthValues[index] ? "1" : "0"}</button>
+                      <button type="button" className={`truth-output ${truthValues[index] === "1" ? "on" : ""} ${truthValues[index] === "X" ? "is-dont-care" : ""}`} aria-label={`Truth row ${index} output ${truthValues[index]}`} onClick={() => setTruthValues((current) => current.map((value, row) => row === index ? value === "0" ? "1" : value === "1" ? "X" : "0" : value))}>{truthValues[index]}</button>
                     </div>)}
                   </div>
                 </div>
@@ -479,7 +552,7 @@ export default function Home({ embedded = false, visibleSection = "all" }: { emb
             <button type="button" className="analyze-button" onClick={handleAnalyze}><Play size={17} fill="currentColor" /> Analyze function <ArrowRight size={17} /></button>
             <button type="button" className="example-button" onClick={loadExample}><RotateCcw size={14} /> Load working example</button>
 
-            <div className="input-footnote"><Activity size={15} /><span><b>Exhaustive verification</b><br />Every possible input row is tested.</span></div>
+            <div className="input-footnote"><Activity size={15} /><span><b>Exhaustive verification</b><br />Every possible input row is tested.</span><button type="button" className="share-button" onClick={() => void shareState()}><Share2 size={14} />{shared ? "Link copied" : "Share"}</button></div>
           </aside>
 
           <section className="results-canvas">
@@ -503,7 +576,7 @@ export default function Home({ embedded = false, visibleSection = "all" }: { emb
               <div className="result-table-wrap"><table className="result-table"><thead><tr><th>#</th>{analysis.variables.map((variable) => <th key={variable}>{variable}</th>)}<th>F</th></tr></thead><tbody>{analysis.verificationRows.map((row) => <tr key={row.index}><td>{row.index}</td>{analysis.variables.map((variable) => <td key={variable}>{row.assignment[variable] ? "1" : "0"}</td>)}<td><BooleanChip value={row.original} dontCare={row.dontCare} compact /></td></tr>)}</tbody></table></div>
             </section>}
 
-            {showSection("kmap") && <KMap analysis={analysis} />}
+            {showSection("kmap") && <KMap analysis={analysis} onCellChange={updateKMapCell} />}
 
             {showSection("gates") && <section className="implementation-section" id="gates">
               <div className="section-heading"><div><div className="eyebrow">Gate synthesis</div><h3>Three equivalent implementations</h3></div><p>Each diagram is an executable signal graph.</p></div>

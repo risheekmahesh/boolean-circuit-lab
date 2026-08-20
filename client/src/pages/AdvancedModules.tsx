@@ -1,10 +1,13 @@
-import { useState } from "react";
-import type { ReactNode } from "react";
-import { Calculator, CircuitBoard, GitBranch, Info, Plus, RefreshCw } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Calculator, Check, CircuitBoard, Download, GitBranch, Info, Pause, Play, Plus, RefreshCw, RotateCcw } from "lucide-react";
 import {
   Bit,
   bitString,
+  bitsFromNumber,
   decimalFromBits,
+  numberFromBits,
+  rippleAdd,
+  twosComplementSubtract,
   fullAdder,
   fullAdderTruthTable,
   fullSubtractor,
@@ -68,12 +71,14 @@ function TruthTable({ headers, rows, activeInputs }: { headers: string[]; rows: 
   </div>;
 }
 
-function ScaleControl({ scale, onChange }: { scale: number; onChange: (value: number) => void }) {
-  const update = (value: number) => onChange(Math.min(2, Math.max(0.5, Math.round(value * 4) / 4)));
+function ScaleControl({ scale, onChange, onReset, onExport }: { scale: number; onChange: (value: number) => void; onReset: () => void; onExport: () => void }) {
+  const update = (value: number) => onChange(Math.min(2.5, Math.max(0.4, Math.round(value * 10) / 10)));
   return <div className="circuit-scale-control" aria-label="Circuit scale control">
-    <span>CIRCUIT SCALE</span><button type="button" onClick={() => update(scale - 0.25)} aria-label="Decrease circuit scale">−</button>
-    <input aria-label="Circuit scale" type="range" min="0.5" max="2" step="0.25" value={scale} onChange={(event) => update(Number(event.target.value))} />
-    <button type="button" onClick={() => update(scale + 0.25)} aria-label="Increase circuit scale">+</button><output>{Math.round(scale * 100)}%</output>
+    <span>CIRCUIT SCALE</span><button type="button" onClick={() => update(scale - 0.1)} aria-label="Decrease circuit scale">−</button>
+    <input aria-label="Circuit scale" type="range" min="0.4" max="2.5" step="0.1" value={scale} onChange={(event) => update(Number(event.target.value))} />
+    <button type="button" onClick={() => update(scale + 0.1)} aria-label="Increase circuit scale">+</button><output>{Math.round(scale * 100)}%</output>
+    <button type="button" className="circuit-tool-button" onClick={onReset} aria-label="Reset circuit view"><RotateCcw size={13} /></button>
+    <button type="button" className="circuit-tool-button" onClick={onExport} aria-label="Export SVG"><Download size={13} /></button>
   </div>;
 }
 
@@ -105,12 +110,32 @@ function Wire({ d, source = "derived", value }: { d: string; source?: SignalSour
 
 function CircuitFrame({ title, scale, onScaleChange, children, width = 1000, height = 360 }: { title: string; scale: number; onScaleChange: (value: number) => void; children: ReactNode; width?: number; height?: number }) {
   const id = `module-grid-${title.replace(/[^a-z0-9]/gi, "-").toLowerCase()}`;
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const exportSvg = () => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const copy = svg.cloneNode(true) as SVGSVGElement;
+    copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    copy.setAttribute("width", String(width));
+    copy.setAttribute("height", String(height));
+    const blob = new Blob([new XMLSerializer().serializeToString(copy)], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.svg`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+  const resetView = () => { canvasRef.current?.scrollTo({ left: 0, top: 0 }); onScaleChange(1); };
   return <div className="module-circuit">
-    <div className="module-circuit-head"><span><CircuitBoard size={16} /> CIRCUIT DIAGRAM</span><div className="module-circuit-status"><small>{title}</small><ScaleControl scale={scale} onChange={onScaleChange} /></div></div>
-    <div className="module-circuit-canvas"><svg viewBox={`0 0 ${width} ${height}`} style={{ width: `${width * scale}px`, height: `${height * scale}px` }} role="img" aria-label={`${title} logic gate diagram`}>
-      <defs><pattern id={id} width="18" height="18" patternUnits="userSpaceOnUse"><path d="M 18 0 L 0 0 0 18" fill="none" stroke="rgba(25, 48, 50, 0.07)" strokeWidth="0.7" /></pattern></defs>
-      <rect x="0" y="0" width={width} height={height} fill={`url(#${id})`} />{children}
-    </svg></div>
+    <div className="module-circuit-head"><span><CircuitBoard size={16} /> CIRCUIT DIAGRAM</span><div className="module-circuit-status"><small>{title}</small><ScaleControl scale={scale} onChange={onScaleChange} onReset={resetView} onExport={exportSvg} /></div></div>
+    <div ref={canvasRef} className="module-circuit-canvas" onPointerDown={(event) => { if (event.button === 0) { event.currentTarget.setPointerCapture(event.pointerId); event.currentTarget.dataset.panning = "true"; } }} onPointerMove={(event) => { if (event.currentTarget.dataset.panning === "true") { event.currentTarget.scrollLeft -= event.movementX; event.currentTarget.scrollTop -= event.movementY; } }} onPointerUp={(event) => { event.currentTarget.dataset.panning = "false"; event.currentTarget.releasePointerCapture(event.pointerId); }} onPointerCancel={(event) => { event.currentTarget.dataset.panning = "false"; }}>
+      <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} style={{ width: `${width * scale}px`, height: `${height * scale}px` }} role="img" aria-label={`${title} logic gate diagram`}>
+        <defs><pattern id={id} width="18" height="18" patternUnits="userSpaceOnUse"><path d="M 18 0 L 0 0 0 18" fill="none" stroke="rgba(25, 48, 50, 0.07)" strokeWidth="0.7" /></pattern></defs>
+        <rect x="0" y="0" width={width} height={height} fill={`url(#${id})`} />{children}
+      </svg>
+    </div>
   </div>;
 }
 
@@ -127,7 +152,7 @@ function SimulatorPanel({ inputs, outputs }: { inputs: ReactNode; outputs: React
 }
 
 function ModuleInfoBanner({ children }: { children: ReactNode }) {
-  return <div className="module-info-banner"><Info size={17} /><span>{children}</span></div>;
+  return <div className="module-info-banner"><Info size={17} /><div><span>{children}</span><details className="module-education"><summary>Open educational breakdown</summary><div className="module-education-grid"><p><strong>Circuit overview</strong><br />Follow the left-to-right signal path from source terminals through each gate or arithmetic stage to the labeled output.</p><p><strong>Signal legend</strong><br /><span className="signal-swatch swatch-a" /> primary A/X signals · <span className="signal-swatch swatch-b" /> primary B/Y signals · <span className="signal-swatch swatch-c" /> carry/borrow inputs · <span className="signal-swatch swatch-derived" /> derived signals.</p><p><strong>Logic equations</strong><br />The formula strip above is the Boolean derivation for the rendered topology. Intermediate labels expose the stage outputs used by later gates.</p><p><strong>Live worked trace</strong><br />Toggle inputs above and use playback when available to compare the highlighted stage values with the truth-table row and binary output.</p></div></details></div></div>;
 }
 
 function HalfAdderCard() {
@@ -278,7 +303,7 @@ function MultiplierCard() {
 }
 
 function ThreeBitMultiplierCard() {
-  const [[a2, setA2], [a1, setA1], [a0, setA0], [b2, setB2], [b1, setB1], [b0, setB0]] = [useState<Bit>(1), useState<Bit>(0), useState<Bit>(1), useState<Bit>(1), useState<Bit>(0), useState<Bit>(1)];
+  const [[a2, setA2], [a1, setA1], [a0, setA0], [b2, setB2], [b1, setB1], [b0, setB0]] = [useState<Bit>(1), useState<Bit>(0), useState<Bit>(1), useState<Bit>(1), useState<Bit>(1), useState<Bit>(1)];
   const [scale, setScale] = useState(0.75);
   const result = multiplyThreeBitNumbers(a2, a1, a0, b2, b1, b0);
   const [p00, p10, p20, p01, p11, p21, p02, p12, p22] = result.partialProducts;
@@ -318,13 +343,92 @@ function ThreeBitMultiplierCard() {
   </article>;
 }
 
+function PlaybackControls({ stageCount, activeStage, onStageChange }: { stageCount: number; activeStage: number; onStageChange: (stage: number) => void }) {
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(500);
+  useEffect(() => {
+    if (!playing) return;
+    const timer = window.setInterval(() => onStageChange(activeStage >= stageCount ? 0 : activeStage + 1), speed);
+    return () => window.clearInterval(timer);
+  }, [playing, speed, activeStage, stageCount, onStageChange]);
+  return <div className="playback-controls" aria-label="Logic propagation playback">
+    <span className="module-label">PROPAGATION PLAYBACK</span>
+    <button type="button" onClick={() => onStageChange(0)} aria-label="Reset propagation"><RotateCcw size={14} /></button>
+    <button type="button" onClick={() => onStageChange(Math.max(0, activeStage - 1))} aria-label="Step back">‹</button>
+    <button type="button" className="playback-main" onClick={() => setPlaying((current) => !current)} aria-label={playing ? "Pause propagation" : "Play propagation"}>{playing ? <Pause size={14} /> : <Play size={14} />}</button>
+    <button type="button" onClick={() => onStageChange(Math.min(stageCount, activeStage + 1))} aria-label="Step forward">›</button>
+    <input type="range" min="0" max={stageCount} value={activeStage} onChange={(event) => onStageChange(Number(event.target.value))} aria-label="Propagation stage" />
+    <output>stage {activeStage}/{stageCount}</output>
+    <select aria-label="Playback speed" value={speed} onChange={(event) => setSpeed(Number(event.target.value))}><option value="1000">Slow</option><option value="500">Normal</option><option value="200">Fast</option></select>
+  </div>;
+}
+
+function PartialProductMatrix({ aBits, bBits, product }: { aBits: Bit[]; bBits: Bit[]; product: Bit[] }) {
+  const width = aBits.length;
+  const columns = width * 2;
+  const rows = bBits.slice().reverse().map((b, rowIndex) => Array.from({ length: columns }, (_, column) => {
+    const aIndex = width - 1 - (column - rowIndex);
+    return column >= rowIndex && column < rowIndex + width && aIndex >= 0 && aIndex < width ? (aBits[aIndex] & b) as Bit : 0 as Bit;
+  }));
+  return <section className="partial-product-matrix" aria-label={`${width}-bit shift and add matrix`}>
+    <div className="matrix-heading"><div><span className="module-section-label">SHIFT-AND-ADD MATRIX</span><strong>Partial-product columns</strong></div><code>{bitString(product)}₂</code></div>
+    <div className="matrix-scroll"><table><thead><tr><th>row</th>{Array.from({ length: columns }, (_, index) => <th key={index}>2<sup>{columns - index - 1}</sup></th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={index}><th>B{bBits.length - index - 1}</th>{row.map((value, column) => <td className={value ? "is-active" : ""} key={column}>{value}</td>)}</tr>)}<tr className="matrix-total"><th>Σ</th>{product.slice().map((value, index) => <td className={value ? "is-active" : ""} key={index}>{value}</td>)}</tr></tbody></table></div>
+  </section>;
+}
+
+function RippleAdderCard() {
+  const [width, setWidth] = useState(4);
+  const [aValue, setAValue] = useState(9);
+  const [bValue, setBValue] = useState(7);
+  const [cin, setCin] = useState<Bit>(1);
+  const [scale, setScale] = useState(0.9);
+  const [activeStage, setActiveStage] = useState(0);
+  const max = 2 ** width - 1;
+  const aBits = bitsFromNumber(Math.min(aValue, max), width);
+  const bBits = bitsFromNumber(Math.min(bValue, max), width);
+  const result = rippleAdd(aBits, bBits, cin);
+  const stageRows: TruthRow[] = result.stages.map((stage, index) => ({ inputs: [aBits[index], bBits[index], index === width - 1 ? cin : result.carries[index + 1]], outputs: [stage.sum, stage.carry] }));
+  const canvasWidth = 260 + width * 160;
+  return <article className="module-card variable-arithmetic-card" id="ripple-adder">
+    <ModuleHeading eyebrow="07 / ADDER" title="Ripple-Carry Adder" description="A configurable 2–8-bit chain of full adders with carry propagation from the least-significant stage to the MSB." meta={`${width} BITS · ${width + 1} OUTPUTS`} />
+    <FormulaStrip formulas={["S = A + B + CIN", "Cᵢ₊₁ = FA(Aᵢ, Bᵢ, Cᵢ)"]} />
+    <div className="variable-module-controls"><label>Bit width<select value={width} onChange={(event) => { const next = Number(event.target.value); setWidth(next); setAValue((value) => Math.min(value, 2 ** next - 1)); setBValue((value) => Math.min(value, 2 ** next - 1)); setActiveStage(0); }}>{Array.from({ length: 7 }, (_, index) => <option key={index + 2} value={index + 2}>{index + 2}-bit</option>)}</select></label><label>A<input type="number" min="0" max={max} value={aValue} onChange={(event) => setAValue(Math.min(max, Math.max(0, Number(event.target.value))))} /></label><label>B<input type="number" min="0" max={max} value={bValue} onChange={(event) => setBValue(Math.min(max, Math.max(0, Number(event.target.value))))} /></label><BitToggle label="CIN" value={cin} onChange={setCin} /></div>
+    <div className="module-content-grid"><div className="module-data-column"><div className="module-section-label">FULL ADDER STAGES</div><TruthTable headers={["Aᵢ", "Bᵢ", "Cᵢ", "Sᵢ", "Cᵢ₊₁"]} rows={stageRows} /><div className="ripple-result"><span>SUM</span><strong>{bitString(result.sum)}₂ = {numberFromBits(result.sum)}₁₀</strong><Lamp label="COUT" value={result.carryOut} /></div><PlaybackControls stageCount={width} activeStage={activeStage} onStageChange={setActiveStage} /></div><CircuitFrame title="RIPPLE FULL-ADDER CHAIN" scale={scale} onScaleChange={setScale} width={canvasWidth} height={320}><text className="module-stage-label" x="120" y="24">LSB → MSB CARRY PROPAGATION</text>{Array.from({ length: width }, (_, index) => { const x = 120 + index * 160; const stage = result.stages[width - index - 1]; const active = activeStage >= width - index; return <g key={index}><rect className={`module-stage-box ${active ? "is-active" : ""}`} x={x} y="100" width="112" height="82" rx="10" /><text className="module-stage-box-title" x={x + 56} y="128" textAnchor="middle">FA{width - index}</text><text className="module-stage-box-value" x={x + 56} y="150" textAnchor="middle">Σ {bitValue(stage.sum)} · C {bitValue(stage.carry)}</text>{index < width - 1 && <Wire source="derived" value={stage.carry} d={`M${x + 112} 141 H${x + 160}`} />}</g>; })}<Wire source="a0" value={aBits[width - 1]} d={`M80 90 H120`} /><Wire source="b0" value={bBits[width - 1]} d={`M80 210 H120`} /><Terminal x={canvasWidth - 10} y={141} label="COUT" value={result.carryOut} kind="output" /></CircuitFrame></div>
+    <PartialProductMatrix aBits={aBits} bBits={bBits} product={[result.carryOut, ...result.sum]} />
+    <ModuleInfoBanner>Each full-adder stage receives the previous carry. The playback slider exposes the chain one depth at a time, while the matrix shows the weighted binary result.</ModuleInfoBanner>
+  </article>;
+}
+
+function TwosComplementSubtractorCard() {
+  const [width, setWidth] = useState(4);
+  const [aValue, setAValue] = useState(7);
+  const [bValue, setBValue] = useState(3);
+  const [flagMode, setFlagMode] = useState<"raw" | "noBorrow">("noBorrow");
+  const [scale, setScale] = useState(0.9);
+  const [activeStage, setActiveStage] = useState(0);
+  const max = 2 ** width - 1;
+  const aBits = bitsFromNumber(Math.min(aValue, max), width);
+  const bBits = bitsFromNumber(Math.min(bValue, max), width);
+  const result = twosComplementSubtract(aBits, bBits);
+  const signedValue = aValue - bValue;
+  const outputFlag = flagMode === "raw" ? result.carryOut : result.noBorrow;
+  const stageRows: TruthRow[] = result.stages.map((stage, index) => ({ inputs: [aBits[index], result.complementedB[index], index === width - 1 ? 1 : result.carries[index + 1]], outputs: [stage.sum, stage.carry] }));
+  return <article className="module-card variable-arithmetic-card" id="twos-complement-subtractor">
+    <ModuleHeading eyebrow="08 / SUBTRACTOR" title="Two’s Complement Subtractor" description="Subtracts B from A with bitwise inversion, a hardwired carry-in of 1, and configurable raw-carry/no-borrow reporting." meta={`${width} BITS · CARRY FLAG`} />
+    <FormulaStrip formulas={["A − B = A + ~B + 1", "No Borrow = COUT"]} />
+    <div className="variable-module-controls"><label>Bit width<select value={width} onChange={(event) => { const next = Number(event.target.value); setWidth(next); setAValue((value) => Math.min(value, 2 ** next - 1)); setBValue((value) => Math.min(value, 2 ** next - 1)); setActiveStage(0); }}>{Array.from({ length: 7 }, (_, index) => <option key={index + 2} value={index + 2}>{index + 2}-bit</option>)}</select></label><label>A<input type="number" min="0" max={max} value={aValue} onChange={(event) => setAValue(Math.min(max, Math.max(0, Number(event.target.value))))} /></label><label>B<input type="number" min="0" max={max} value={bValue} onChange={(event) => setBValue(Math.min(max, Math.max(0, Number(event.target.value))))} /></label><div className="segmented-control"><button type="button" className={flagMode === "raw" ? "selected" : ""} onClick={() => setFlagMode("raw")}>Raw COUT</button><button type="button" className={flagMode === "noBorrow" ? "selected" : ""} onClick={() => setFlagMode("noBorrow")}>No Borrow</button></div></div>
+    <div className="module-content-grid"><div className="module-data-column"><div className="module-section-label">ADDER-BASED SUBTRACTION</div><TruthTable headers={["Aᵢ", "~Bᵢ", "Cᵢ", "Dᵢ", "Cᵢ₊₁"]} rows={stageRows} /><div className="ripple-result"><span>DIFFERENCE</span><strong>{bitString(result.difference)}₂ = {signedValue < 0 ? `${bitString(result.difference)}₂ (two's complement)` : `${signedValue}₁₀`}</strong><Lamp label={flagMode === "raw" ? "COUT" : "NO BORROW"} value={outputFlag} /></div><PlaybackControls stageCount={width} activeStage={activeStage} onStageChange={setActiveStage} /></div><CircuitFrame title="INVERT B + RIPPLE ADDER" scale={scale} onScaleChange={setScale} width={300 + width * 160} height={320}><text className="module-stage-label" x="120" y="24">A + ~B + 1</text>{Array.from({ length: width }, (_, index) => { const x = 120 + index * 160; const stage = result.stages[width - index - 1]; const active = activeStage >= width - index; return <g key={index}><rect className={`module-stage-box ${active ? "is-active" : ""}`} x={x} y="100" width="112" height="82" rx="10" /><text className="module-stage-box-title" x={x + 56} y="128" textAnchor="middle">FA{width - index}</text><text className="module-stage-box-value" x={x + 56} y="150" textAnchor="middle">D {bitValue(stage.sum)} · C {bitValue(stage.carry)}</text>{index < width - 1 && <Wire source="derived" value={stage.carry} d={`M${x + 112} 141 H${x + 160}`} />}</g>; })}<Terminal x={20} y={90} label="CIN = 1" value={1} source="c" /><Terminal x={300 + width * 160 - 10} y={141} label={flagMode === "raw" ? "COUT" : "NO BORROW"} value={outputFlag} kind="output" /></CircuitFrame></div>
+    <ModuleInfoBanner>{aValue >= bValue ? `A ≥ B, so the final carry is 1 and the subtraction is non-negative (${signedValue}).` : `A < B, so the final carry is 0 and the difference is represented in ${width}-bit two's-complement form.`} The toggle lets you inspect the raw hardware carry or the semantic no-borrow flag.</ModuleInfoBanner>
+  </article>;
+}
+
 export default function AdvancedModules() {
   const [filter, setFilter] = useState<"all" | "adders" | "subtractors" | "multiplier">("all");
   return <div className="modules-page"><main className="modules-main">
-    <div className="modules-hero"><div className="eyebrow"><Plus size={14} /> CIRCUIT MODULES / INTERACTIVE LAB</div><h1>Arithmetic circuits,<br /><i>explained by signals.</i></h1><p>Toggle real input switches, read the highlighted truth-table row, scale the gate-level canvas, and follow every signal from input to output.</p></div>
+    <div className="modules-hero"><div className="eyebrow"><Plus size={14} /> CIRCUIT MODULES / INTERACTIVE LAB</div><h1>Arithmetic circuits,<br /><i>explained by signals.</i></h1><p>Toggle live operands, read stage-level truth tables, play signal propagation, inspect shift-and-add matrices, and export any gate canvas as SVG.</p></div>
     <nav className="module-filter-bar" aria-label="Filter arithmetic modules">{([['all', 'All'], ['adders', 'Adders'], ['subtractors', 'Subtractors'], ['multiplier', 'Multiplier']] as const).map(([value, label]) => <button type="button" key={value} className={filter === value ? "is-active" : ""} onClick={() => setFilter(value)}>{label}</button>)}</nav>
-    {filter === "all" || filter === "adders" ? <section id="adders" className="module-section"><div className="module-section-heading"><div><div className="eyebrow">01 / ADDERS</div><h2>Build the sum.</h2></div><span>SUM · CARRY · CARRY-IN</span></div><HalfAdderCard /><FullAdderCard /></section> : null}
-    {filter === "all" || filter === "subtractors" ? <section id="subtractors" className="module-section"><div className="module-section-heading"><div><div className="eyebrow">02 / SUBTRACTORS</div><h2>Trace the difference.</h2></div><span>DIFFERENCE · BORROW</span></div><HalfSubtractorCard /><FullSubtractorCard /></section> : null}
+    {filter === "all" || filter === "adders" ? <section id="adders" className="module-section"><div className="module-section-heading"><div><div className="eyebrow">01 / ADDERS</div><h2>Build the sum.</h2></div><span>SUM · CARRY · CARRY-IN</span></div><HalfAdderCard /><FullAdderCard /><RippleAdderCard /></section> : null}
+    {filter === "all" || filter === "subtractors" ? <section id="subtractors" className="module-section"><div className="module-section-heading"><div><div className="eyebrow">02 / SUBTRACTORS</div><h2>Trace the difference.</h2></div><span>DIFFERENCE · BORROW</span></div><HalfSubtractorCard /><FullSubtractorCard /><TwosComplementSubtractorCard /></section> : null}
     {filter === "all" || filter === "multiplier" ? <section id="multiplier" className="module-section"><div className="module-section-heading"><div><div className="eyebrow">03 / MULTIPLIER</div><h2>Multiply with partial products.</h2></div><span>DIAGONAL ARRAY · ADDERS · PRODUCT</span></div><MultiplierCard /><ThreeBitMultiplierCard /></section> : null}
     <div className="modules-callout"><Calculator size={19} /><span>Every module is deterministic and live. Toggle any input or adjust the circuit scale to inspect the same logic at a comfortable size.</span><RefreshCw size={17} /></div>
   </main></div>;

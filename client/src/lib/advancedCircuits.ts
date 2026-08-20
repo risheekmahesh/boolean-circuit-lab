@@ -34,6 +34,22 @@ export type ThreeBitMultiplierResult = {
   adderCarries: [Bit, Bit, Bit, Bit, Bit, Bit, Bit, Bit];
 };
 
+export type RippleAdderResult = {
+  sum: Bit[];
+  carryOut: Bit;
+  carries: Bit[];
+  stages: FullAdderResult[];
+};
+
+export type TwosComplementSubtractorResult = {
+  difference: Bit[];
+  carryOut: Bit;
+  noBorrow: Bit;
+  complementedB: Bit[];
+  carries: Bit[];
+  stages: FullAdderResult[];
+};
+
 export type TruthRow = {
   inputs: Bit[];
   outputs: Bit[];
@@ -59,6 +75,41 @@ export function fullSubtractor(a: Bit, b: Bit, bin: Bit): FullSubtractorResult {
   const first = halfSubtractor(a, b);
   const second = halfSubtractor(first.difference, bin);
   return { difference: second.difference, borrow: bit(first.borrow | second.borrow) };
+}
+
+export function rippleAdd(aBits: Bit[], bBits: Bit[], cin: Bit = 0): RippleAdderResult {
+  if (aBits.length !== bBits.length || aBits.length < 2 || aBits.length > 8) {
+    throw new Error("Ripple adders support matching vectors from 2 to 8 bits.");
+  }
+  let carry = cin;
+  const sum = Array.from({ length: aBits.length }, () => 0 as Bit);
+  const carries = Array.from({ length: aBits.length }, () => 0 as Bit);
+  const stages: FullAdderResult[] = [];
+  for (let index = aBits.length - 1; index >= 0; index -= 1) {
+    const stage = fullAdder(aBits[index], bBits[index], carry);
+    sum[index] = stage.sum;
+    carries[index] = stage.carry;
+    stages[index] = stage;
+    carry = stage.carry;
+  }
+  return { sum, carryOut: carry, carries, stages };
+}
+
+export function twosComplementSubtract(aBits: Bit[], bBits: Bit[]): TwosComplementSubtractorResult {
+  if (aBits.length !== bBits.length || aBits.length < 2 || aBits.length > 8) {
+    throw new Error("Two’s complement subtractors support matching vectors from 2 to 8 bits.");
+  }
+  const complementedB = bBits.map((value) => (value ? 0 : 1) as Bit);
+  const result = rippleAdd(aBits, complementedB, 1);
+  return { difference: result.sum, carryOut: result.carryOut, noBorrow: result.carryOut, complementedB, carries: result.carries, stages: result.stages };
+}
+
+export function bitsFromNumber(value: number, width: number): Bit[] {
+  return Array.from({ length: width }, (_, index) => bit(value >> (width - index - 1) & 1));
+}
+
+export function numberFromBits(bits: Bit[]): number {
+  return bits.reduce<number>((value, current) => value * 2 + current, 0);
 }
 
 export function multiplyTwoBitNumbers(a1: Bit, a0: Bit, b1: Bit, b0: Bit): MultiplierResult {

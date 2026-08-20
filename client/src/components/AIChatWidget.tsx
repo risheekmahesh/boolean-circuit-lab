@@ -22,7 +22,7 @@ export default function AIChatWidget() {
 
   const pageContext = useMemo(() => {
     if (location.startsWith("/problem")) return "Problem Statement Solver workspace: the user is typing or reviewing an uploaded digital-circuit problem before sending it to Gemini.";
-    if (location.startsWith("/modules")) return "Digital logic modules page: half adder, full adder, half subtractor, full subtractor, and 2-bit by 2-bit multiplier.";
+    if (location.startsWith("/modules")) return "Digital logic modules page: half/full adders, configurable 2–8-bit ripple-carry adder, half/full subtractors, configurable two’s-complement subtractor with raw COUT/no-borrow mode, 2-bit and 3-bit multipliers, propagation playback, shift-and-add matrix, and SVG circuit export.";
     if (location.startsWith("/verify")) return "Boolean Circuit Lab verification view: exhaustive row-by-row equivalence checks.";
     if (location.startsWith("/settings")) return "Boolean Circuit Lab settings view.";
     return "Boolean Circuit Lab analyzer page: Boolean expression minimization, don't-care terms, truth table, Karnaugh map, and gate-level implementations.";
