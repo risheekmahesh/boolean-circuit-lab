@@ -759,3 +759,33 @@ footer { font-size: 11px; }
   .problem-dropzone { min-height: 185px; }
   .problem-editor-footer { flex-direction: column; gap: 4px; }
 }
+
+/* Orthogonal arithmetic schematic signal map: scoped to the Modules SVG renderer. */
+.module-wire.wire-a { stroke: #2563EB; }
+.module-wire.wire-b { stroke: #F59E0B; }
+.module-wire.wire-c { stroke: #06B6D4; }
+.module-wire.wire-derived { stroke: #14B8A6; }
+.module-junction.junction-a { fill: #2563EB; }
+.module-junction.junction-b { fill: #F59E0B; }
+.module-junction.junction-c { fill: #06B6D4; }
+.module-junction.junction-derived { fill: #14B8A6; }
+.module-terminal.terminal-source-a rect { stroke: #2563EB; }
+.module-terminal.terminal-source-a .module-terminal-key, .module-terminal.terminal-source-a .module-terminal-value { fill: #2563EB; }
+.module-terminal.terminal-source-b rect { stroke: #F59E0B; }
+.module-terminal.terminal-source-b .module-terminal-key, .module-terminal.terminal-source-b .module-terminal-value { fill: #F59E0B; }
+.module-terminal.terminal-source-c rect { stroke: #06B6D4; }
+.module-terminal.terminal-source-c .module-terminal-key, .module-terminal.terminal-source-c .module-terminal-value { fill: #06B6D4; }
+.dark .module-wire.wire-a { stroke: #2563EB; }
+.dark .module-wire.wire-b { stroke: #F59E0B; }
+.dark .module-wire.wire-c { stroke: #06B6D4; }
+.dark .module-wire.wire-derived { stroke: #14B8A6; }
+.dark .module-junction.junction-a { fill: #2563EB; }
+.dark .module-junction.junction-b { fill: #F59E0B; }
+.dark .module-junction.junction-c { fill: #06B6D4; }
+.dark .module-junction.junction-derived { fill: #14B8A6; }
+.dark .module-terminal.terminal-source-a rect { stroke: #2563EB; }
+.dark .module-terminal.terminal-source-a .module-terminal-key, .dark .module-terminal.terminal-source-a .module-terminal-value { fill: #79a7ff; }
+.dark .module-terminal.terminal-source-b rect { stroke: #F59E0B; }
+.dark .module-terminal.terminal-source-b .module-terminal-key, .dark .module-terminal.terminal-source-b .module-terminal-value { fill: #ffd27a; }
+.dark .module-terminal.terminal-source-c rect { stroke: #06B6D4; }
+.dark .module-terminal.terminal-source-c .module-terminal-key, .dark .module-terminal.terminal-source-c .module-terminal-value { fill: #7de7f7; }

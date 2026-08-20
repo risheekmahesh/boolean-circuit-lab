@@ -28,11 +28,12 @@ type TerminalProps = {
   label: string;
   value: Bit;
   kind?: "input" | "output";
+  source?: "a" | "b" | "c";
 };
 
-function Terminal({ x, y, label, value, kind = "input" }: TerminalProps) {
+function Terminal({ x, y, label, value, kind = "input", source }: TerminalProps) {
   const width = kind === "output" ? 118 : 76;
-  return <g className={`module-terminal terminal-${kind}`}>
+  return <g className={`module-terminal terminal-${kind} ${source ? `terminal-source-${source}` : ""}`}>
     <rect x={x} y={y - 17} width={width} height={34} rx="7" />
     <text className="module-terminal-key" x={x + 14} y={y + 4}>{label}</text>
     <text className="module-terminal-value" x={x + width - 14} y={y + 4} textAnchor="end">{bitValue(value)}</text>
@@ -137,13 +138,14 @@ function HalfAdderCard() {
     <div className="module-content-grid">
       <div className="module-data-column"><div className="module-section-label">TRUTH TABLE</div><TruthTable headers={["A", "B", "S", "C"]} rows={halfAdderTruthTable} activeInputs={[a, b]} /><SimulatorPanel inputs={<><BitToggle label="A" value={a} onChange={setA} /><BitToggle label="B" value={b} onChange={setB} /></>} outputs={<><Lamp label="S" value={result.sum} /><Lamp label="C" value={result.carry} /></>} /></div>
       <CircuitFrame title="XOR + AND" scale={scale} onScaleChange={setScale}>
-        <Terminal x={20} y={112} label="A" value={a} /><Terminal x={20} y={232} label="B" value={b} />
-        <Wire source="a" value={a} d="M96 112 H150 V110 H200" /><Wire source="b" value={b} d="M96 232 H130 V126 H200" />
-        <Wire source="a" value={a} d="M96 112 H112 V230 H200" /><Wire source="b" value={b} d="M96 232 H90 V246 H200" />
-        <circle className="module-junction" cx="112" cy="112" r="4" /><circle className="module-junction" cx="90" cy="232" r="4" />
-        <Gate x={200} y={82} label="XOR" active={result.sum} /><Gate x={200} y={202} label="AND" active={result.carry} />
-        <Wire value={result.sum} d="M298 110 H760" /><Wire value={result.carry} d="M298 230 H760" />
-        <Terminal x={760} y={110} label="S" value={result.sum} kind="output" /><Terminal x={760} y={230} label="C" value={result.carry} kind="output" />
+        <text className="module-stage-label" x="390" y="28">SUM PATH</text><text className="module-stage-label" x="390" y="198">CARRY PATH</text>
+        <Terminal x={20} y={70} label="A" value={a} source="a" /><Terminal x={20} y={280} label="B" value={b} source="b" />
+        <Wire source="a" value={a} d="M96 70 H220 V78 H390" /><Wire source="a" value={a} d="M96 70 H180 V230 H390" />
+        <Wire source="b" value={b} d="M96 280 H250 V94 H390" /><Wire source="b" value={b} d="M96 280 H200 V246 H390" />
+        <circle className="module-junction junction-a" cx="150" cy="70" r="4" /><circle className="module-junction junction-b" cx="200" cy="280" r="4" />
+        <Gate x={390} y={58} label="XOR" active={result.sum} /><Gate x={390} y={210} label="AND" active={result.carry} />
+        <Wire value={result.sum} d="M488 86 H820" /><Wire value={result.carry} d="M488 238 H820" />
+        <Terminal x={820} y={86} label="S / SUM" value={result.sum} kind="output" /><Terminal x={820} y={238} label="C / CARRY" value={result.carry} kind="output" />
       </CircuitFrame>
     </div>
     <ModuleInfoBanner>The XOR gate reports the sum bit when the inputs differ, while the AND gate reports a carry only when both inputs are HIGH.</ModuleInfoBanner>
@@ -162,17 +164,18 @@ function FullAdderCard() {
     <div className="module-content-grid">
       <div className="module-data-column"><div className="module-section-label">TRUTH TABLE</div><TruthTable headers={["A", "B", "Cᵢₙ", "S", "Cₒᵤₜ"]} rows={fullAdderTruthTable} activeInputs={[a, b, cin]} /><SimulatorPanel inputs={<><BitToggle label="A" value={a} onChange={setA} /><BitToggle label="B" value={b} onChange={setB} /><BitToggle label="Cᵢₙ" value={cin} onChange={setCin} /></>} outputs={<><Lamp label="S" value={result.sum} /><Lamp label="Cₒᵤₜ" value={result.carry} /></>} /></div>
       <CircuitFrame title="TWO HALF ADDERS + OR" scale={scale} onScaleChange={setScale}>
-        <Terminal x={20} y={70} label="A" value={a} /><Terminal x={20} y={120} label="B" value={b} /><Terminal x={20} y={285} label="Cᵢₙ" value={cin} />
-        <Wire source="a" value={a} d="M96 70 H125 V65 H180" /><Wire source="b" value={b} d="M96 120 H145 V81 H180" />
-        <Wire source="a" value={a} d="M96 70 H110 V185 H180" /><Wire source="b" value={b} d="M96 120 H96 V201 H180" />
-        <circle className="module-junction" cx="110" cy="70" r="4" /><circle className="module-junction" cx="96" cy="120" r="4" />
-        <Gate x={180} y={45} label="XOR" active={first.sum} /><Gate x={180} y={165} label="AND" active={first.carry} />
-        <Wire value={first.sum} d="M278 73 H350 V95 H430" /><Wire value={first.sum} d="M278 73 H330 V230 H430" /><circle className="module-junction" cx="330" cy="73" r="4" />
-        <Wire value={first.carry} d="M278 193 H580 V210 H680" />
-        <Wire source="c" value={cin} d="M96 285 H390 V111 H430" /><Wire source="c" value={cin} d="M96 285 H380 V246 H430" /><circle className="module-junction wire-c" cx="380" cy="285" r="4" />
-        <Gate x={430} y={75} label="XOR" active={second.sum} /><Gate x={430} y={210} label="AND" active={second.carry} /><Gate x={680} y={190} label="OR" active={result.carry} />
-        <Wire value={second.sum} d="M528 103 H850" /><Wire value={second.carry} d="M528 238 H620 V226 H680" />
-        <Wire value={result.carry} d="M778 218 H850" /><Terminal x={850} y={103} label="S" value={result.sum} kind="output" /><Terminal x={850} y={218} label="Cₒᵤₜ" value={result.carry} kind="output" />
+        <text className="module-stage-label" x="370" y="28">HALF ADDER 1</text><text className="module-stage-label" x="580" y="28">HALF ADDER 2</text><text className="module-stage-label" x="680" y="166">CARRY MERGE</text>
+        <Terminal x={20} y={50} label="A" value={a} source="a" /><Terminal x={20} y={130} label="B" value={b} source="b" /><Terminal x={20} y={300} label="Cᵢₙ" value={cin} source="c" />
+        <Wire source="a" value={a} d="M96 50 H180 V78 H380" /><Wire source="a" value={a} d="M96 50 H140 V220 H380" />
+        <Wire source="b" value={b} d="M96 130 H220 V94 H380" /><Wire source="b" value={b} d="M96 130 H160 V236 H380" />
+        <circle className="module-junction junction-a" cx="140" cy="50" r="4" /><circle className="module-junction junction-b" cx="160" cy="130" r="4" />
+        <Gate x={380} y={58} label="XOR" active={first.sum} /><Gate x={380} y={200} label="AND" active={first.carry} />
+        <Wire source="derived" value={first.sum} d="M478 86 H530 V78 H590" /><Wire source="derived" value={first.sum} d="M478 86 H520 V220 H590" /><circle className="module-junction junction-derived" cx="520" cy="86" r="4" />
+        <Wire source="derived" value={first.carry} d="M478 228 H620 V190 H680" />
+        <Wire source="c" value={cin} d="M96 300 H550 V94 H590" /><Wire source="c" value={cin} d="M96 300 H540 V236 H590" /><circle className="module-junction junction-c" cx="540" cy="300" r="4" />
+        <Gate x={590} y={58} label="XOR" active={second.sum} /><Gate x={590} y={200} label="AND" active={second.carry} /><Gate x={680} y={170} label="OR" active={result.carry} />
+        <Wire value={second.sum} d="M688 86 H900" /><Wire value={second.carry} d="M688 228 H640 V206 H680" />
+        <Wire value={result.carry} d="M778 198 H900" /><Terminal x={900} y={86} label="S / SUM" value={result.sum} kind="output" /><Terminal x={900} y={198} label="Cₒᵤₜ / CARRY" value={result.carry} kind="output" />
       </CircuitFrame>
     </div>
     <ModuleInfoBanner>Two half adders calculate the intermediate and final sums; the OR gate combines their carry signals into the carry-out.</ModuleInfoBanner>
@@ -190,13 +193,15 @@ function HalfSubtractorCard() {
     <div className="module-content-grid">
       <div className="module-data-column"><div className="module-section-label">TRUTH TABLE</div><TruthTable headers={["A", "B", "D", "Bᵣ"]} rows={halfSubtractorTruthTable} activeInputs={[a, b]} /><SimulatorPanel inputs={<><BitToggle label="A" value={a} onChange={setA} /><BitToggle label="B" value={b} onChange={setB} /></>} outputs={<><Lamp label="D" value={result.difference} /><Lamp label="Bᵣ" value={result.borrow} /></>} /></div>
       <CircuitFrame title="XOR + NOT + AND" scale={scale} onScaleChange={setScale}>
-        <Terminal x={20} y={70} label="A" value={a} /><Terminal x={20} y={220} label="B" value={b} />
-        <Wire source="a" value={a} d="M96 70 H150 V120 H200" /><Wire source="b" value={b} d="M96 220 H165 V136 H200" /><Wire source="a" value={a} d="M96 70 H125 V248 H500" />
-        <circle className="module-junction" cx="125" cy="70" r="4" />
-        <Gate x={200} y={92} label="XOR" active={result.difference} /><Gate x={200} y={220} label="NOT" inputs={1} active={notA} /><Gate x={500} y={220} label="AND" active={result.borrow} />
-        <Wire value={notA} d="M280 248 H400 V240 H500" /><Wire source="b" value={b} d="M96 220 H180 V256 H500" />
-        <Wire value={result.difference} d="M298 120 H850" /><Wire value={result.borrow} d="M598 248 H850" />
-        <Terminal x={850} y={120} label="D" value={result.difference} kind="output" /><Terminal x={850} y={248} label="Bᵣ" value={result.borrow} kind="output" />
+        <text className="module-stage-label" x="390" y="58">DIFFERENCE PATH</text><text className="module-stage-label" x="390" y="216">BORROW PATH</text>
+        <Terminal x={20} y={55} label="A" value={a} source="a" /><Terminal x={20} y={285} label="B" value={b} source="b" />
+        <Wire source="a" value={a} d="M96 55 H230 V110 H380" /><Wire source="a" value={a} d="M96 55 H160 V258 H380" />
+        <Wire source="b" value={b} d="M96 285 H260 V126 H380" /><Wire source="b" value={b} d="M96 285 H520 V256 H600" />
+        <circle className="module-junction junction-a" cx="160" cy="55" r="4" /><circle className="module-junction junction-b" cx="520" cy="285" r="4" />
+        <Gate x={380} y={90} label="XOR" active={result.difference} /><Gate x={380} y={230} label="NOT" inputs={1} active={notA} /><Gate x={600} y={220} label="AND" active={result.borrow} />
+        <Wire value={notA} d="M460 258 H540 V240 H600" />
+        <Wire value={result.difference} d="M478 118 H900" /><Wire value={result.borrow} d="M698 248 H900" />
+        <Terminal x={900} y={118} label="D / DIFFERENCE" value={result.difference} kind="output" /><Terminal x={900} y={248} label="Bᵣ / BORROW" value={result.borrow} kind="output" />
       </CircuitFrame>
     </div>
     <ModuleInfoBanner>The XOR gate forms the difference, while NOT A and B feed the AND gate to detect when the subtraction needs a borrow.</ModuleInfoBanner>
@@ -216,18 +221,21 @@ function FullSubtractorCard() {
     <FormulaStrip formulas={["D = A ⊕ B ⊕ Bᵢₙ", "Bₒᵤₜ = A̅B + Bᵢₙ(A ⊕ B)̅"]} />
     <div className="module-content-grid">
       <div className="module-data-column"><div className="module-section-label">TRUTH TABLE</div><TruthTable headers={["A", "B", "Bᵢₙ", "D", "Bₒᵤₜ"]} rows={fullSubtractorTruthTable} activeInputs={[a, b, bin]} /><SimulatorPanel inputs={<><BitToggle label="A" value={a} onChange={setA} /><BitToggle label="B" value={b} onChange={setB} /><BitToggle label="Bᵢₙ" value={bin} onChange={setBin} /></>} outputs={<><Lamp label="D" value={result.difference} /><Lamp label="Bₒᵤₜ" value={result.borrow} /></>} /></div>
-      <CircuitFrame title="TWO HALF SUBTRACTORS + OR" scale={scale} onScaleChange={setScale}>
-        <Terminal x={20} y={60} label="A" value={a} /><Terminal x={20} y={112} label="B" value={b} /><Terminal x={20} y={285} label="Bᵢₙ" value={bin} />
-        <Wire source="a" value={a} d="M96 60 H125 V60 H170" /><Wire source="b" value={b} d="M96 112 H140 V76 H170" />
-        <Wire source="a" value={a} d="M96 60 H115 V275 H170" /><Wire source="b" value={b} d="M96 112 H100 V291 H170" />
-        <circle className="module-junction" cx="115" cy="60" r="4" /><circle className="module-junction" cx="100" cy="112" r="4" />
-        <Gate x={170} y={40} label="XOR" active={first.difference} /><Gate x={170} y={155} label="NOT" inputs={1} active={notA} /><Gate x={170} y={255} label="AND" active={first.borrow} />
-        <Wire value={first.difference} d="M268 68 H330 V95 H390" /><Wire value={first.difference} d="M268 68 H310 V183 H390" /><circle className="module-junction" cx="310" cy="68" r="4" />
-        <Wire value={notA} d="M250 183 H260 V275 H500" /><Wire value={first.borrow} d="M268 283 H580 V250 H680" />
-        <Wire source="c" value={bin} d="M96 285 H360 V111 H390" /><Wire source="c" value={bin} d="M96 285 H380 V236 H500" /><circle className="module-junction wire-c" cx="360" cy="285" r="4" />
-        <Gate x={390} y={75} label="XOR" active={second.difference} /><Gate x={390} y={155} label="NOT" inputs={1} active={notFirstDifference} /><Gate x={500} y={200} label="AND" active={second.borrow} /><Gate x={680} y={220} label="OR" active={result.borrow} />
-        <Wire value={second.difference} d="M488 103 H850" /><Wire value={notFirstDifference} d="M470 183 H500 V220" /><Wire value={second.borrow} d="M598 228 H630 V266 H680" /><Wire value={result.borrow} d="M778 248 H850" />
-        <Terminal x={850} y={103} label="D" value={result.difference} kind="output" /><Terminal x={850} y={248} label="Bₒᵤₜ" value={result.borrow} kind="output" />
+<CircuitFrame title="TWO HALF SUBTRACTORS + OR" scale={scale} onScaleChange={setScale}>
+        <text className="module-stage-label" x="260" y="22">HALF SUBTRACTOR 1</text><text className="module-stage-label" x="500" y="22">HALF SUBTRACTOR 2</text><text className="module-stage-label" x="760" y="92">BORROW MERGE</text>
+        <Terminal x={20} y={45} label="A" value={a} source="a" /><Terminal x={20} y={110} label="B" value={b} source="b" /><Terminal x={20} y={300} label="Bᵢₙ" value={bin} source="c" />
+        <Wire source="a" value={a} d="M96 45 H180 V50 H260" /><Wire source="a" value={a} d="M96 45 H140 V178 H260" />
+        <Wire source="b" value={b} d="M96 110 H200 V66 H260" /><Wire source="b" value={b} d="M96 110 H220 V181 H400" />
+        <circle className="module-junction junction-a" cx="140" cy="45" r="4" /><circle className="module-junction junction-b" cx="220" cy="110" r="4" />
+        <Gate x={260} y={30} label="XOR" active={first.difference} /><Gate x={260} y={150} label="NOT" inputs={1} active={notA} /><Gate x={400} y={145} label="AND" active={first.borrow} />
+        <Wire source="derived" value={notA} d="M340 178 H360 V165 H400" />
+        <Wire source="derived" value={first.difference} d="M358 58 H420 V50 H500" /><Wire source="derived" value={first.difference} d="M358 58 H400 V178 H500" /><circle className="module-junction junction-derived" cx="400" cy="58" r="4" />
+        <Wire source="c" value={bin} d="M96 300 H460 V66 H500" /><Wire source="c" value={bin} d="M96 300 H580 V181 H620" /><circle className="module-junction junction-c" cx="580" cy="300" r="4" />
+        <Gate x={500} y={30} label="XOR" active={second.difference} /><Gate x={500} y={150} label="NOT" inputs={1} active={notFirstDifference} /><Gate x={620} y={145} label="AND" active={second.borrow} /><Gate x={760} y={105} label="OR" active={result.borrow} />
+        <Wire source="derived" value={notFirstDifference} d="M580 178 H600 V165 H620" />
+        <Wire source="derived" value={first.borrow} d="M498 173 H690 V125 H760" /><Wire source="derived" value={second.borrow} d="M718 173 H730 V141 H760" />
+        <Wire value={second.difference} d="M598 58 H860" /><Wire value={result.borrow} d="M858 133 H860" />
+        <Terminal x={860} y={58} label="D / DIFFERENCE" value={result.difference} kind="output" /><Terminal x={860} y={133} label="Bₒᵤₜ / BORROW" value={result.borrow} kind="output" />
       </CircuitFrame>
     </div>
     <ModuleInfoBanner>Two half subtractors calculate the difference and borrow-in path; the OR gate combines the borrow generated at either stage.</ModuleInfoBanner>
